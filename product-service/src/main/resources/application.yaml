@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: product-service
+  datasource:
+    url: jdbc:postgresql://localhost:5433/lingerie_products
+    username: postgres
+    password: 15042008Volody@K@m
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update # Дозволить Hibernate автоматично створювати таблиці під час навчання
+    show-sql: true # Дозволить нам бачити згенеровані SQL-запити в консолі
+    properties:
+      hibernate:
+        format_sql: true
