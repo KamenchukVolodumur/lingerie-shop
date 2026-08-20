@@ -1,0 +1,54 @@
+# === Gradle ===
+.gradle/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# === Maven (якщо десь використаєш Maven замість Gradle) ===
+**/target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# === IDE (IntelliJ IDEA, STS, Eclipse, NetBeans, VS Code) ===
+.idea/
+*.iws
+*.iml
+*.ipr
+bin/
+**/bin/
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+.vscode/
+
+# === Operating System / System files ===
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# === Logs & Temp files ===
+*.log
+logs/
+**/logs/
+tmp/
+temp/
+
+# === Local configuration, Secrets and Environment variables ===
+.env
+.env.*
+!.env.example
+**/src/main/resources/application-local.yml
+**/src/main/resources/application-local.yaml
+**/src/main/resources/application-dev.yml
+**/src/main/resources/application-dev.yaml
