@@ -44,7 +44,7 @@ public class CartService {
     }
 
     public CartResponseDTO addItem(String cartId, CartItemRequestDTO requestDto) {
-        validateRequest(requestDto);
+        validateAddRequest(requestDto);
         synchronized (cartId.intern()) {
             Cart cart = cartRepository.findById(cartId).orElse(new Cart(cartId));
             // merge quantities when same product+variant
@@ -65,7 +65,7 @@ public class CartService {
     }
 
     public CartResponseDTO updateItemQuantity(String cartId, CartItemRequestDTO requestDto) {
-        validateRequest(requestDto);
+        validateUpdateRequest(requestDto);
         synchronized (cartId.intern()) {
             Cart cart = cartRepository.findById(cartId).orElseThrow(() -> new CartNotFoundException(cartId));
             boolean found = false;
@@ -104,10 +104,17 @@ public class CartService {
         return ttlSeconds;
     }
 
-    private void validateRequest(CartItemRequestDTO requestDto) {
+    private void validateAddRequest(CartItemRequestDTO requestDto) {
         if (requestDto == null) throw new BadRequestException("request body is required");
         if (requestDto.productId() == null || requestDto.productVariantId() == null) throw new BadRequestException("productId and productVariantId are required");
         if (requestDto.quantity() <= 0) throw new BadRequestException("quantity must be > 0");
+    }
+
+    private void validateUpdateRequest(CartItemRequestDTO requestDto) {
+        if (requestDto == null) throw new BadRequestException("request body is required");
+        if (requestDto.productId() == null || requestDto.productVariantId() == null) throw new BadRequestException("productId and productVariantId are required");
+        // quantity can be zero (means remove)
+        if (requestDto.quantity() < 0) throw new BadRequestException("quantity must be >= 0");
     }
 
     private CartResponseDTO mapToDto(Cart cart) {
