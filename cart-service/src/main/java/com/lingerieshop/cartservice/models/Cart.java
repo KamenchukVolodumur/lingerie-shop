@@ -21,8 +21,8 @@ public class Cart {
 
     private List<CartItem> products = new ArrayList<>();
 
-    @TimeToLive(unit = TimeUnit.DAYS)
-    private Long timeToLive = 7L;
+    @TimeToLive(unit = TimeUnit.SECONDS)
+    private Long timeToLive = 7L * 24 * 3600; // default 7 days in seconds
 
     public Cart(String id) {
         this.id = id;
