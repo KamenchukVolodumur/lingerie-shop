@@ -1,6 +1,10 @@
 package com.lingerieshop.cartservice;
 
-public class ProductServiceException extends RuntimeException {
+/**
+ * Deprecated wrapper for backward compatibility. Use com.lingerieshop.cartservice.exceptions.ProductServiceException
+ */
+@Deprecated
+public class ProductServiceException extends com.lingerieshop.cartservice.exceptions.ProductServiceException {
     public ProductServiceException(String message, Throwable cause) {
         super(message, cause);
     }

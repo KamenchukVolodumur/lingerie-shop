@@ -1,6 +1,10 @@
 package com.lingerieshop.cartservice;
 
-public class BadRequestException extends RuntimeException {
+/**
+ * Deprecated wrapper for backward compatibility. Use com.lingerieshop.cartservice.exceptions.BadRequestException
+ */
+@Deprecated
+public class BadRequestException extends com.lingerieshop.cartservice.exceptions.BadRequestException {
     public BadRequestException(String message) {
         super(message);
     }

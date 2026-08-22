@@ -5,11 +5,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.lingerieshop.cartservice.exceptions.CartNotFoundException;
+import com.lingerieshop.cartservice.exceptions.BadRequestException;
+import com.lingerieshop.cartservice.exceptions.ProductServiceException;
+
 import java.time.Instant;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
 
     @ExceptionHandler(CartNotFoundException.class)
     public ResponseEntity<?> handleNotFound(CartNotFoundException ex) {

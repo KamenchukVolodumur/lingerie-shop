@@ -1,7 +1,11 @@
 package com.lingerieshop.cartservice;
 
-public class CartNotFoundException extends RuntimeException {
+/**
+ * Deprecated wrapper for backward compatibility. Use com.lingerieshop.cartservice.exceptions.CartNotFoundException
+ */
+@Deprecated
+public class CartNotFoundException extends com.lingerieshop.cartservice.exceptions.CartNotFoundException {
     public CartNotFoundException(String cartId) {
-        super("Cart not found: " + cartId);
+        super(cartId);
     }
 }

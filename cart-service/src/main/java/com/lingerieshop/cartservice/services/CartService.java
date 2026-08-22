@@ -1,8 +1,8 @@
 package com.lingerieshop.cartservice.services;
 
-import com.lingerieshop.cartservice.BadRequestException;
-import com.lingerieshop.cartservice.CartNotFoundException;
-import com.lingerieshop.cartservice.ProductServiceException;
+import com.lingerieshop.cartservice.exceptions.BadRequestException;
+import com.lingerieshop.cartservice.exceptions.CartNotFoundException;
+import com.lingerieshop.cartservice.exceptions.ProductServiceException;
 import com.lingerieshop.cartservice.clients.ProductServiceClient;
 import com.lingerieshop.cartservice.dto.CartItemRequestDTO;
 import com.lingerieshop.cartservice.dto.CartItemResponseDTO;
