@@ -147,7 +147,7 @@ public class ProductService {
         );
     }
 
-    // 🛠 Допоміжний мапер для розміру/варіанту
+    //  Допоміжний мапер для розміру/варіанту
     private ProductVariantResponseDTO mapToVariantResponseDTO(ProductVariant variant) {
         return new ProductVariantResponseDTO(
                 variant.getId(),
