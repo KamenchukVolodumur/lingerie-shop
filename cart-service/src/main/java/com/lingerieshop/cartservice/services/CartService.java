@@ -39,6 +39,10 @@ public class CartService {
         Optional<Cart> opt = cartRepository.findById(cartId);
         if (opt.isEmpty()) {
             return new CartResponseDTO(List.of(), BigDecimal.ZERO, "USD");
+        }else{
+            Cart cart = opt.get();
+            cart.setTimeToLive(Long.valueOf(3600));
+            cartRepository.save(cart);
         }
         return mapToDto(opt.get());
     }

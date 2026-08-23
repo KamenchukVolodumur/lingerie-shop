@@ -11,6 +11,9 @@ public record ProductCreateDTO (
         @NotBlank(message = "Назва не може бути порожньою") // Validation
          String name,
 
+        @NotBlank(message = "Назва не може бути порожньою") // Validation
+        String description,
+
         @NotNull
         @Min(value = 1, message = "Ціна має бути більше 0") // Validation
         BigDecimal price,

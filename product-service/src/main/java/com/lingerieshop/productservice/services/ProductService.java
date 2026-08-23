@@ -45,6 +45,7 @@ public class ProductService {
 
         Product product = new Product();
         product.setName(productDto.name());
+        product.setDescription(productDto.description());
         product.setSlug(productDto.slug());
         product.setPrice(productDto.price());
         product.setCategory(category);
@@ -75,6 +76,7 @@ public class ProductService {
         Category category = getCategoryOrThrow(updatedProductDto.categoryId());
 
         existingProduct.setName(updatedProductDto.name());
+        existingProduct.setDescription(updatedProductDto.description());
         existingProduct.setSlug(updatedProductDto.slug());
         existingProduct.setPrice(updatedProductDto.price());
         existingProduct.setCategory(category);
@@ -143,7 +145,7 @@ public class ProductService {
                 product.getDescription(),
                 product.getPrice(),
                 product.getCategory() != null ? product.getCategory().getCategoryId() : null,
-                new ArrayList<ProductVariantResponseDTO>()
+                new ArrayList<ProductVariantResponseDTO>(variantDTOs)
         );
     }
 
