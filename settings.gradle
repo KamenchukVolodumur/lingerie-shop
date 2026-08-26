@@ -1,0 +1,5 @@
+rootProject.name = 'lingerie-shop'
+
+include 'cart-service'
+include 'product-service'
+include 'order-service'

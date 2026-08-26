@@ -1,0 +1,25 @@
+server:
+  port: 8083
+app:
+  services:
+    cart-service-url: http://localhost:8082
+    product-service-url: http://localhost:8080
+
+spring:
+  application:
+    name: order-service
+  datasource:
+    url: jdbc:postgresql://localhost:5433/lingerie_orders
+    username: postgres
+    password: 15042008Volody@K@m
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
+  jpa:
+    hibernate:
+      ddl-auto: update # Дозволить Hibernate автоматично створювати таблиці під час навчання
+    show-sql: true # Дозволить нам бачити згенеровані SQL-запити в консолі
+    properties:
+      hibernate:
+        format_sql: true

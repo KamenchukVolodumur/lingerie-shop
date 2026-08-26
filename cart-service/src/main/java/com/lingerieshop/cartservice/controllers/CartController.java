@@ -42,6 +42,12 @@ public class CartController {
         return ResponseEntity.ok(cartService.removeItem(cartId, productId, productVariantId));
     }
 
+    @DeleteMapping("/{cartId}")
+    public ResponseEntity<Void> clearCart(@PathVariable String cartId) {
+        cartService.clearCart(cartId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{cartId}/ttl")
     public ResponseEntity<Map<String, Long>> setTTL(@PathVariable String cartId,
                                                     @RequestParam long ttlSeconds) {

@@ -3,20 +3,26 @@ package com.lingerieshop.productservice.services;
 import com.lingerieshop.productservice.entities.Category;
 import com.lingerieshop.productservice.entities.Product;
 import com.lingerieshop.productservice.entities.ProductVariant;
+import com.lingerieshop.productservice.dto.StockAdjustmentRequestDTO;
 import com.lingerieshop.productservice.repositories.CategoryRepository;
 import com.lingerieshop.productservice.repositories.ProductRepository;
+import com.lingerieshop.productservice.repositories.ProductVariantRepository;
 import com.lingerieshop.productservice.dto.ProductCreateDTO;
 import com.lingerieshop.productservice.dto.ProductVariantCreateDTO;
 import com.lingerieshop.productservice.dto.ProductResponseDTO;
 import com.lingerieshop.productservice.dto.ProductVariantResponseDTO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -24,16 +30,28 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final ProductVariantRepository productVariantRepository;
+    
     private Product getProductEntityByID(Long id){
         return productRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Product not found"));
     }
+    
     @Transactional(readOnly = true)
     public ProductResponseDTO getProductById(Long productId) {
          return mapToProductResponseDTO(getProductEntityByID(productId));
     }
 
-    public List<ProductResponseDTO> getAllProducts() {
-        return productRepository.findAll().stream().map(this::mapToProductResponseDTO).toList();
+    @Transactional(readOnly = true)
+    public Page<ProductResponseDTO> getAllProducts(Pageable pageable) {
+        return productRepository.findAll(pageable).map(this::mapToProductResponseDTO);
+    }
+    
+    // F1-02: Batch endpoint for fetching multiple products
+    @Transactional(readOnly = true)
+    public List<ProductResponseDTO> getProductsByIds(List<Long> ids) {
+        return productRepository.findAllById(ids).stream()
+                .map(this::mapToProductResponseDTO)
+                .toList();
     }
 
 
@@ -67,7 +85,7 @@ public class ProductService {
         return mapToProductResponseDTO(result);
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ProductResponseDTO updateProduct(Long productId, ProductCreateDTO updatedProductDto) {
         Product existingProduct = getProductEntityByID(productId);
 
@@ -97,16 +115,40 @@ public class ProductService {
         return mapToProductResponseDTO(result);
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void deleteProduct(Long productId) {
         Product product = getProductEntityByID(productId);
         productRepository.delete(product);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<ProductResponseDTO> getProductsByCategory(Long categoryId) {
         getCategoryOrThrow(categoryId);
         return productRepository.findAllByCategory_CategoryId(categoryId).stream().map(this::mapToProductResponseDTO).toList();
+    }
+
+    @Transactional
+    public void deductStock(List<StockAdjustmentRequestDTO> items) {
+        normalizeStockRequests(items).forEach((variantId, quantity) -> {
+            ProductVariant variant = getVariantOrThrow(variantId);
+            int currentStock = variant.getStock() != null ? variant.getStock() : 0;
+
+            if (currentStock < quantity) {
+                throw new IllegalStateException(
+                        "Insufficient stock for variant " + variantId + ": requested " + quantity + ", available " + currentStock);
+            }
+
+            variant.setStock(currentStock - quantity);
+        });
+    }
+
+    @Transactional
+    public void releaseStock(List<StockAdjustmentRequestDTO> items) {
+        normalizeStockRequests(items).forEach((variantId, quantity) -> {
+            ProductVariant variant = getVariantOrThrow(variantId);
+            int currentStock = variant.getStock() != null ? variant.getStock() : 0;
+            variant.setStock(currentStock + quantity);
+        });
     }
 
 
@@ -128,13 +170,42 @@ public class ProductService {
                 .orElseThrow(() -> new EntityNotFoundException("Category was not found"));
     }
 
+    private ProductVariant getVariantOrThrow(Long variantId) {
+        return productVariantRepository.findById(variantId)
+                .orElseThrow(() -> new EntityNotFoundException("Product variant not found: " + variantId));
+    }
+
+    private Map<Long, Integer> normalizeStockRequests(List<StockAdjustmentRequestDTO> items) {
+        if (items == null || items.isEmpty()) {
+            throw new IllegalArgumentException("Stock adjustment items are required");
+        }
+
+        Map<Long, Integer> quantitiesByVariantId = new LinkedHashMap<>();
+        for (StockAdjustmentRequestDTO item : items) {
+            if (item == null) {
+                throw new IllegalArgumentException("Stock adjustment item cannot be null");
+            }
+
+            if (item.productVariantId() == null) {
+                throw new IllegalArgumentException("productVariantId is required");
+            }
+
+            if (item.quantity() <= 0) {
+                throw new IllegalArgumentException("quantity must be greater than 0");
+            }
+
+            quantitiesByVariantId.merge(item.productVariantId(), item.quantity(), Integer::sum);
+        }
+        return quantitiesByVariantId;
+    }
+
 
     private ProductResponseDTO mapToProductResponseDTO(Product product) {
         List<ProductVariantResponseDTO> variantDTOs = null;
 
         if (product.getVariants() != null) {
             variantDTOs = product.getVariants().stream()
-                    .map(this::mapToVariantResponseDTO) // Мапимо кожен варіант
+                    .map(this::mapToVariantResponseDTO)
                     .toList();
         }
 
@@ -149,15 +220,36 @@ public class ProductService {
         );
     }
 
-    //  Допоміжний мапер для розміру/варіанту
+    // F2-05: Check stock availability for variant
+    @Transactional(readOnly = true)
+    public Map<String, Object> checkVariantStock(Long productId, Long variantId) {
+        Product product = getProductEntityByID(productId);
+        
+        ProductVariant variant = product.getVariants().stream()
+                .filter(v -> v.getId().equals(variantId))
+                .findFirst()
+                .orElseThrow(() -> new EntityNotFoundException("Variant not found for product " + productId));
+        
+        int stock = variant.getStock() != null ? variant.getStock() : 0;
+        boolean available = stock > 0;
+        
+        return Map.of(
+                "available", available,
+                "stockLeft", stock,
+                "productId", productId,
+                "variantId", variantId,
+                "size", variant.getSize(),
+                "color", variant.getColor()
+        );
+    }
+
     private ProductVariantResponseDTO mapToVariantResponseDTO(ProductVariant variant) {
         return new ProductVariantResponseDTO(
                 variant.getId(),
-                variant.getSize(),
                 variant.getColor(),
+                variant.getSize(),
                 variant.getStock(),
                 variant.getProduct().getId()
         );
     }
 }
-

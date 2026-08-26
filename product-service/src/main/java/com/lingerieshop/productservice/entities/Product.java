@@ -19,22 +19,24 @@ public class Product {
     private Long id;
 
     @Column(nullable = false)
-    private String name; // Назва комплекту (наприклад, "Мереживний комплект Luna")
+    private String name;
 
     @Column(nullable = false, unique = true)
     private String slug;
 
     @Column(length = 1000)
-    private String description; // Опис товару
+    private String description;
 
     @Column(nullable = false)
-    private BigDecimal price; // Базова ціна
+    private BigDecimal price;
 
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
-    // Зворотний зв'язок: один базовий товар має багато варіацій (розмірів/кольорів)
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductVariant> variants;
+    
+    @Version
+    private Long version;  // F2-07: Optimistic Locking
 }

@@ -16,17 +16,18 @@ public class ProductVariant {
     private Long id;
 
     @Column(nullable = false)
-    private String color; // Колір (наприклад, "Чорний")
+    private String color;
 
     @Column(nullable = false)
-    private String size; // Розмір (наприклад, "75B" або "M")
+    private String size;
 
     @Column(nullable = false)
-    private Integer stock; // Залишок на складі (скільки штук є фізично)
+    private Integer stock;
 
-    // Головний зв'язок: багато варіацій належать до одного базового товару
-    // Hibernate сам створить колонку product_id у таблиці product_variants
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
+    
+    @Version
+    private Long version;  // F2-07: Optimistic Locking
 }

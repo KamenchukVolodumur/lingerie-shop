@@ -8,6 +8,8 @@ public record CartItemResponseDTO (
         int quantity,
         String productName,
         String productImageUrl,
+        String size,           // F2-02: Added - fetched dynamically from product variant
+        String color,          // F2-02: Added - fetched dynamically from product variant
         BigDecimal unitPrice,
         BigDecimal itemTotal
-        ) {}
+) {}

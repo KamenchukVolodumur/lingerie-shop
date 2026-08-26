@@ -11,7 +11,7 @@ public record ProductVariantCreateDTO (
         @NotBlank(message = "Колір не може бути пустим")
         String color,
 
-        @NotNull
-        @Min(value = 0, message = "Кількість на складі не може бути від'ємною")
+        @NotNull(message = "Кількість на складі обов'язкова")
+        @Min(value = 1, message = "Кількість на складі має бути щонайменше 1")
         Integer stockQuantity
 ){ }
