@@ -25,8 +25,8 @@ const COLOR_MAP = {
 export const mapProductFromBackend = (productDto) => {
   // Генеруємо "псевдо-випадкові" (але стабільні для одного ID) індекси для картинок
   const idHash = Number(productDto.id) || 0;
-  const image1 = MOCK_IMAGES[idHash % MOCK_IMAGES.length];
-  const image2 = MOCK_IMAGES[(idHash + 1) % MOCK_IMAGES.length];
+  const image1 = productDto.imageUrl || MOCK_IMAGES[idHash % MOCK_IMAGES.length];
+  const image2 = productDto.imageUrl || MOCK_IMAGES[(idHash + 1) % MOCK_IMAGES.length];
 
   // Групуємо варіанти з бекенду (де колір і розмір плоскі) в унікальні кольори
   const uniqueColorsMap = new Map();
@@ -75,6 +75,7 @@ export const mapProductFromBackend = (productDto) => {
     name: productDto.name,
     slug: productDto.slug,
     description: productDto.description,
+    imageUrl: productDto.imageUrl,
     price: `$${parseFloat(productDto.price).toFixed(2)}`,
     categoryId: productDto.category,
     inStock: totalStock > 0,

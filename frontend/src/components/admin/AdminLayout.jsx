@@ -24,7 +24,7 @@ function AdminLayout() {
       <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
         <div className="p-6 border-b border-gray-200">
           <Link to="/" className="text-xl tracking-[0.2em] font-light uppercase">
-            Aura Admin
+            DRESS CODE Admin
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-2">

@@ -21,6 +21,11 @@ export const adminOrderService = {
     return response.data;
   },
 
+  revertOrder: async (id) => {
+    const response = await api.patch(`/admin/orders/${id}/revert`);
+    return response.data;
+  },
+
   payOrder: async (id) => {
     const response = await api.patch(`/admin/orders/${id}/pay`);
     return response.data;

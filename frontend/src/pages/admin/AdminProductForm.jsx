@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { categoryService } from '../../api/categoryService';
+import { productService } from '../../api/productService';
 
 function AdminProductForm({ onClose, onSubmit, initialData }) {
   const [categories, setCategories] = useState([]);
@@ -11,8 +12,10 @@ function AdminProductForm({ onClose, onSubmit, initialData }) {
     name: initialData?.name || '',
     description: initialData?.description || '',
     price: initialData?.price ? parseFloat(initialData.price.replace('$', '')) : '',
-    categoryId: initialData?.categoryId || ''
+    categoryId: initialData?.categoryId || '',
+    imageUrl: initialData?.imageUrl || ''
   });
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const [variants, setVariants] = useState(
     initialData?.rawVariants && initialData.rawVariants.length > 0 
@@ -41,6 +44,23 @@ function AdminProductForm({ onClose, onSubmit, initialData }) {
     setVariants(newVariants);
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingImage(true);
+      setError('');
+      const response = await productService.uploadImage(file);
+      setFormData(prev => ({ ...prev, imageUrl: response.url }));
+    } catch (err) {
+      setError('Помилка завантаження фотографії. Спробуйте ще раз.');
+      console.error(err);
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   const addVariant = () => {
     setVariants([...variants, { size: 'M', color: 'Чорний', stock: 10 }]);
   };
@@ -64,6 +84,7 @@ function AdminProductForm({ onClose, onSubmit, initialData }) {
         name: formData.name,
         slug: initialData?.slug || generatedSlug || 'product-' + Date.now(),
         description: formData.description || 'Немає опису', // Захист від @NotBlank на бекенді
+        imageUrl: formData.imageUrl,
         price: parseFloat(formData.price),
         categoryId: parseInt(formData.categoryId),
         variants: variants.map(v => ({
@@ -152,6 +173,43 @@ function AdminProductForm({ onClose, onSubmit, initialData }) {
                   onChange={handleChange}
                   className="w-full border border-gray-300 p-3 text-sm focus:outline-none focus:border-gray-900 transition-colors"
                 />
+              </div>
+            </div>
+
+            {/* Завантаження фото */}
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Фотографія товару</label>
+              <div className="flex items-center space-x-4">
+                {formData.imageUrl ? (
+                  <div className="relative w-24 h-24 border border-gray-200 rounded overflow-hidden">
+                    <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <button 
+                      type="button" 
+                      onClick={() => setFormData(prev => ({...prev, imageUrl: ''}))}
+                      className="absolute top-1 right-1 bg-white rounded-full p-1 shadow hover:text-red-500"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-24 h-24 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-400 bg-gray-50">
+                    {isUploadingImage ? <Loader2 className="animate-spin" size={24} /> : <ImageIcon size={24} />}
+                  </div>
+                )}
+                
+                <div className="flex-1">
+                  <label className="cursor-pointer bg-white border border-gray-300 text-gray-700 px-4 py-2 text-sm uppercase tracking-widest hover:bg-gray-50 transition-colors inline-block">
+                    {isUploadingImage ? 'Завантаження...' : 'Оберіть файл'}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleImageUpload} 
+                      className="hidden" 
+                      disabled={isUploadingImage}
+                    />
+                  </label>
+                  <p className="text-xs text-gray-400 mt-2">JPG, PNG до 5MB</p>
+                </div>
               </div>
             </div>
           </div>

@@ -118,7 +118,7 @@ function AdminProducts() {
                 <td className="p-4">
                   <div className="w-12 h-16 bg-gray-100 overflow-hidden">
                     <img 
-                      src={product.image || 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&q=80'} 
+                      src={product.imageUrl || product.colors?.[0]?.image || 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&q=80'} 
                       alt={product.name} 
                       className="w-full h-full object-cover"
                     />

@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Search, ShoppingBag, User, Menu, LogOut } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
+import SearchOverlay from './SearchOverlay';
 
 function Header({ setIsMenuOpen }) {
   const { cartCount, setIsCartOpen } = useCart();
   const { isAuthenticated, logout } = useAuth();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100">
@@ -27,13 +29,16 @@ function Header({ setIsMenuOpen }) {
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center justify-center absolute left-1/2 -translate-x-1/2">
             <Link to="/" className="text-2xl tracking-[0.2em] font-light uppercase">
-              Aura
+              DRESS CODE
             </Link>
           </div>
 
           {/* Right Icons */}
           <div className="flex items-center justify-end flex-1 space-x-6">
-            <button className="text-gray-900 hover:text-gray-500 transition-colors hidden sm:block">
+            <button 
+              className="text-gray-900 hover:text-gray-500 transition-colors"
+              onClick={() => setIsSearchOpen(true)}
+            >
               <Search size={22} strokeWidth={1.2} />
             </button>
             
@@ -65,6 +70,8 @@ function Header({ setIsMenuOpen }) {
           </div>
         </div>
       </div>
+      
+      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </header>
   );
 }

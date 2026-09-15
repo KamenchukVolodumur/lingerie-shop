@@ -154,6 +154,29 @@ public class OrderService {
     }
 
     @Transactional
+    public OrderResponseDTO revertOrder(Long orderId) {
+        Order order = findOrderById(orderId);
+        
+        switch (order.getStatus()) {
+            case COMPLETED:
+                order.setStatus(OrderStatus.SHIPPED);
+                break;
+            case SHIPPED:
+                order.setStatus(OrderStatus.CONFIRMED);
+                break;
+            case CONFIRMED:
+                order.setStatus(OrderStatus.NEW);
+                break;
+            case CANCELLED:
+                throw new IllegalStateException("Cannot revert a CANCELLED order (inventory was already refunded).");
+            case NEW:
+                throw new IllegalStateException("Order is already at the first status (NEW).");
+        }
+        
+        return mapToDTO(orderRepository.save(order));
+    }
+
+    @Transactional
     public OrderResponseDTO cancelOrder(Long orderId) {           // NEW/CONFIRMED -> CANCELLED
         Order order = findOrderById(orderId);
         if (order.getStatus() == OrderStatus.SHIPPED || order.getStatus() == OrderStatus.COMPLETED) {

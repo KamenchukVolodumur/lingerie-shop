@@ -29,7 +29,7 @@ function AdminLogin() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white p-10 max-w-md w-full shadow-sm border border-gray-100">
         <h1 className="text-2xl font-light tracking-widest uppercase mb-8 text-center">
-          Aura Admin
+          DRESS CODE Admin
         </h1>
         
         <form onSubmit={handleSubmit} className="space-y-6">

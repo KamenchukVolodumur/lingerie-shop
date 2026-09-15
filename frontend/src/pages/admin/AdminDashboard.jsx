@@ -85,11 +85,11 @@ function AdminDashboard() {
       return totalItems + orderQuantity;
     }, 0);
 
-    const pendingOrders = filteredOrders.filter(order => order.status === 'PENDING').length;
+    const newOrdersCount = filteredOrders.filter(order => order.status === 'NEW').length;
 
     return {
       totalRevenue: revenue,
-      newOrders: pendingOrders,
+      newOrders: newOrdersCount,
       itemsSold: itemsSold,
       recentOrders: filteredOrders.slice(0, 5) // Останні 5 з вибраного періоду
     };
@@ -122,7 +122,7 @@ function AdminDashboard() {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'PENDING':
+      case 'NEW':
         return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">Нове</span>;
       case 'CONFIRMED':
         return <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">Підтверджено</span>;

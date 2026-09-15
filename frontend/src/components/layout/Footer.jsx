@@ -16,7 +16,7 @@ function Footer() {
           <div>
             <h3 className="text-sm uppercase tracking-widest font-medium mb-6">Контакти</h3>
             <ul className="space-y-4 text-sm text-gray-500">
-              <li><a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors">Instagram: @aura.lingerie</a></li>
+              <li><a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors">Instagram: @dress.code</a></li>
               <li><a href="tel:+380000000000" className="hover:text-gray-900 transition-colors">+38 (000) 000 00 00</a></li>
               <li className="leading-relaxed">вул. Центральна, 1,<br/>м. Київ, Україна</li>
             </ul>

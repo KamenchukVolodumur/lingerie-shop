@@ -4,8 +4,13 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -27,8 +32,15 @@ public class Product {
     @Column(length = 1000)
     private String description;
 
+    @Column(length = 500)
+    private String imageUrl;
+
     @Column(nullable = false)
     private BigDecimal price;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private Map<String, String> attributes = new HashMap<>();
 
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)

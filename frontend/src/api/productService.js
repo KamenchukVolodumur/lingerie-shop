@@ -4,10 +4,21 @@ import { categoryService } from './categoryService';
 
 export const productService = {
   // Отримати всі товари з пагінацією
-  getAllProducts: async (page = 0, size = 20) => {
+  getAllProducts: async (page = 0, size = 100) => {
     const response = await api.get(`/products?page=${page}&size=${size}`);
     const products = response.data.content || response.data;
     return products.map(mapProductFromBackend);
+  },
+
+  uploadImage: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/products/upload-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data; // { url: '...' }
   },
 
   createProduct: async (productData) => {

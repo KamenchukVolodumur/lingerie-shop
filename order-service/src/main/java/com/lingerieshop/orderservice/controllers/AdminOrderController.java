@@ -56,6 +56,12 @@ public class AdminOrderController {
         return orderService.completeOrder(id);
     }
 
+    // Відкотити статус на один крок назад
+    @PatchMapping("/{id}/revert")
+    public OrderResponseDTO revertOrder(@PathVariable Long id) {
+        return orderService.revertOrder(id);
+    }
+
     // Скасувати замовлення
     @PatchMapping("/{id}/cancel")
     public OrderResponseDTO cancelOrder(@PathVariable Long id) {

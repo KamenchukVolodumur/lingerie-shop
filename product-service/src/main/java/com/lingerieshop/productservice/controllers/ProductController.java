@@ -11,7 +11,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import com.lingerieshop.productservice.services.ImageUploadService;
 
+import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +25,7 @@ import java.util.Map;
 public class ProductController {
 
     private final ProductService productService;
+    private final ImageUploadService imageUploadService;
 
     @GetMapping
     public ResponseEntity<Page<ProductResponseDTO>> getAllProducts(Pageable pageable) {
@@ -66,6 +71,17 @@ public class ProductController {
             @PathVariable Long variantId) {
         Map<String, Object> stockInfo = productService.checkVariantStock(productId, variantId);
         return ResponseEntity.ok(stockInfo);
+    }
+
+    @PostMapping("/upload-image")
+    public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
+        try {
+            String url = imageUploadService.uploadImage(file);
+            return ResponseEntity.ok(Collections.singletonMap("url", url));
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.singletonMap("error", "Failed to upload image"));
+        }
     }
 
     @PostMapping

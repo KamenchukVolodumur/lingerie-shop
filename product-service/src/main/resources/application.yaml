@@ -16,3 +16,8 @@ spring:
 app:
   seed:
     demo-catalog: true
+
+cloudinary:
+  cloud-name: pjfhzmge
+  api-key: 383148526228435
+  api-secret: jaiEq_fd8F4M5MCyVOJ6RUdGaPw
