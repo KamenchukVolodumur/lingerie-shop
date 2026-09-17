@@ -19,10 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +40,13 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public Page<ProductResponseDTO> getAllProducts(Pageable pageable) {
-        return productRepository.findAll(pageable).map(this::mapToProductResponseDTO);
+        Page<Product> productPage = productRepository.findAll(pageable);
+        List<Long> ids = productPage.getContent().stream().map(Product::getId).toList();
+        if (!ids.isEmpty()) {
+            // Завантажуємо варіанти в кеш Hibernate (L1 cache) одним запитом
+            productRepository.findWithVariantsByIdIn(ids); 
+        }
+        return productPage.map(this::mapToProductResponseDTO);
     }
     
     // F1-02: Batch endpoint for fetching multiple products
@@ -68,6 +71,7 @@ public class ProductService {
         product.setSlug(productDto.slug());
         product.setPrice(productDto.price());
         product.setCategory(category);
+        product.setAttributes(productDto.attributes() != null ? productDto.attributes() : new HashMap<>());
 
         if (productDto.variants() != null) {
             List<ProductVariant> variants = new ArrayList<>();
@@ -100,6 +104,7 @@ public class ProductService {
         existingProduct.setSlug(updatedProductDto.slug());
         existingProduct.setPrice(updatedProductDto.price());
         existingProduct.setCategory(category);
+        existingProduct.setAttributes(updatedProductDto.attributes() != null ? updatedProductDto.attributes() : new HashMap<>());
 
         existingProduct.getVariants().clear();
         if (updatedProductDto.variants() != null) {
@@ -127,6 +132,60 @@ public class ProductService {
     public List<ProductResponseDTO> getProductsByCategory(Long categoryId) {
         getCategoryOrThrow(categoryId);
         return productRepository.findAllByCategory_CategoryId(categoryId).stream().map(this::mapToProductResponseDTO).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, java.util.Set<String>> getCategoryFilters(Long categoryId) {
+        List<Long> categoryIds = getCategoryAndChildrenIds(categoryId);
+        List<ProductRepository.AttributeFilterProjection> projections = productRepository.findDistinctAttributesByCategoryIds(categoryIds);
+        
+        Map<String, java.util.Set<String>> filters = new HashMap<>();
+        for (ProductRepository.AttributeFilterProjection p : projections) {
+            filters.computeIfAbsent(p.getAttributeKey(), k -> new java.util.HashSet<>()).add(p.getAttributeValue());
+        }
+        return filters;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProductResponseDTO> searchProducts(Long categoryId, Map<String, String> attributes) {
+        List<Long> categoryIds = getCategoryAndChildrenIds(categoryId);
+        List<Product> products;
+        
+        if (attributes == null || attributes.isEmpty()) {
+            products = productRepository.findAllByCategory_CategoryIdIn(categoryIds);
+        } else {
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                String json = mapper.writeValueAsString(attributes);
+                List<Long> productIds = productRepository.findProductIdsByAttributes(categoryIds, json);
+                
+                if (productIds.isEmpty()) {
+                    products = new ArrayList<>();
+                } else {
+                    products = productRepository.findWithVariantsByIdIn(productIds);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to process attributes JSON", e);
+            }
+        }
+        return products.stream().map(this::mapToProductResponseDTO).toList();
+    }
+
+    private List<Long> getCategoryAndChildrenIds(Long categoryId) {
+        List<Category> allCategories = categoryRepository.findAll();
+        java.util.Set<Long> ids = new java.util.HashSet<>();
+        ids.add(categoryId);
+        collectChildrenIds(categoryId, allCategories, ids);
+        return new ArrayList<>(ids);
+    }
+
+    private void collectChildrenIds(Long parentId, List<Category> allCategories, java.util.Set<Long> ids) {
+        for (Category cat : allCategories) {
+            if (cat.getParent() != null && cat.getParent().getCategoryId().equals(parentId)) {
+                ids.add(cat.getCategoryId());
+                collectChildrenIds(cat.getCategoryId(), allCategories, ids);
+            }
+        }
     }
 
     @Transactional
@@ -212,6 +271,7 @@ public class ProductService {
         }
 
         return new ProductResponseDTO(
+                product.getAttributes() != null ? product.getAttributes() : new HashMap<>(),
                 product.getId(),
                 product.getName(),
                 product.getSlug(),

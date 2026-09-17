@@ -11,12 +11,17 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import com.lingerieshop.productservice.services.ProductService;
+import java.util.Map;
+import java.util.Set;
+
 @RestController
 @RequestMapping("/api/v1/categories")
 @RequiredArgsConstructor
 public class CategoryController {
 
     private final CategoryService categoryService;
+    private final ProductService productService;
 
     @GetMapping
     public ResponseEntity<List<CategoryResponseDTO>> getAllCategories() {
@@ -34,6 +39,11 @@ public class CategoryController {
     public ResponseEntity<List<CategoryResponseDTO>> getChildCategories(@PathVariable Long id) {
         List<CategoryResponseDTO> childCategories = categoryService.getChildCategories(id);
         return ResponseEntity.ok(childCategories);
+    }
+
+    @GetMapping("/{id}/filters")
+    public ResponseEntity<Map<String, Set<String>>> getCategoryFilters(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.getCategoryFilters(id));
     }
 
     @PostMapping

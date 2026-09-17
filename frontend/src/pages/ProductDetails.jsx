@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { Minus, Plus } from 'lucide-react';
 import { productService } from '../api/productService';
+import { translateKey, translateValue } from '../utils/translations';
 
 function ProductDetails() {
   const { id } = useParams();
@@ -220,6 +221,21 @@ function ProductDetails() {
                   {product.description || "Опис товару з бекенду."}
                 </p>
               </div>
+
+              {/* Dynamic Attributes */}
+              {product.attributes && Object.keys(product.attributes).length > 0 && (
+                <div className="border-t border-gray-100 pt-6">
+                  <h3 className="text-sm font-medium text-gray-900 uppercase tracking-widest mb-4">Характеристики</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
+                    {Object.entries(product.attributes).map(([key, value]) => (
+                      <div key={key} className="flex flex-col border-b border-gray-50 pb-2">
+                        <span className="text-xs text-gray-500 uppercase tracking-wide">{translateKey(key)}</span>
+                        <span className="text-sm text-gray-900 mt-1">{translateValue(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

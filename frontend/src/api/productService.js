@@ -47,47 +47,33 @@ export const productService = {
     return response.data.map(mapProductFromBackend);
   },
 
-  // Отримати товари категорії ТА ВСІХ її підкатегорій (фронтенд агрегація)
-  getProductsForCategoryAndChildren: async (categoryId) => {
+  getProductsForCategoryAndChildren: async (categoryId, filters = {}) => {
     try {
-      // 1. Отримуємо всі категорії, щоб знайти дочірні
-      const allCategories = await categoryService.getAllCategories();
+      // Create query params from filters
+      const params = new URLSearchParams();
+      params.append('categoryId', categoryId);
       
-      // 2. Знаходимо всі ID (батьківська + всі вкладені)
-      const categoryIdsToFetch = new Set([parseInt(categoryId)]);
-      
-      const findChildren = (parentId) => {
-        allCategories.forEach(cat => {
-          if (cat.parentId === parentId) {
-            categoryIdsToFetch.add(cat.categoryId);
-            findChildren(cat.categoryId); // Рекурсивно для глибшої вкладеності
-          }
-        });
-      };
-      findChildren(parseInt(categoryId));
-
-      // 3. Робимо паралельні запити для кожної знайденої категорії
-      const promises = Array.from(categoryIdsToFetch).map(id => 
-        api.get(`/products/category/${id}`)
-      );
-      const responses = await Promise.all(promises);
-      
-      // 4. Збираємо всі товари разом
-      let allProducts = [];
-      responses.forEach(res => {
-        if (res.data && Array.isArray(res.data)) {
-          allProducts = [...allProducts, ...res.data];
+      Object.entries(filters).forEach(([key, values]) => {
+        if (values && values.length > 0) {
+          // If the backend expects comma-separated or first element, adapt here.
+          // Currently, searchProducts parses allParams as a Map<String, String>.
+          // So if we have multiple values, we can join them by comma or just pass single.
+          // Wait, if it's an array, join by comma. But backend uses `@> cast(:attributesJson as jsonb)`.
+          // If we pass `fit=high_waist`, it parses to `{"fit": "high_waist"}`.
+          // If we allow multiple check boxes for one attribute (e.g. material: cotton OR silk),
+          // the native SQL `attributes @> '{"material": "cotton"}'` won't work easily with OR logic unless written carefully.
+          // For MVP, let's just join them by comma (or just pass single value per key for now)
+          // To keep it simple, we will just send the first selected value per filter, or we can send it as string.
+          params.append(key, Array.isArray(values) ? values[0] : values);
         }
       });
 
-      // 5. Видаляємо дублікати (на випадок якщо бекенд повернув один і той самий товар)
-      const uniqueProductsMap = new Map();
-      allProducts.forEach(prod => {
-        uniqueProductsMap.set(prod.id, prod);
-      });
-      const uniqueProducts = Array.from(uniqueProductsMap.values());
-
-      return uniqueProducts.map(mapProductFromBackend);
+      const response = await api.get(`/products/search?${params.toString()}`);
+      
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map(mapProductFromBackend);
+      }
+      return [];
     } catch (error) {
       console.error("Error fetching products for category tree:", error);
       return [];

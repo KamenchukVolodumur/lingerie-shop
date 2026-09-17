@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import ProductGrid from '../components/product/ProductGrid';
+import CategorySidebar from '../components/category/CategorySidebar';
 import { categoryService } from '../api/categoryService';
 
 function CategoryPage() {
   const { categoryId } = useParams();
   const [categoryName, setCategoryName] = useState('Товари');
+  const [activeFilters, setActiveFilters] = useState({});
 
   useEffect(() => {
     // Спробуємо знайти назву категорії, щоб вивести її в заголовок
@@ -34,8 +36,18 @@ function CategoryPage() {
         </div>
       </div>
 
-      {/* Сітка товарів з переданим categoryId */}
-      <ProductGrid categoryId={categoryId} hideTitle={true} />
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 flex flex-col md:flex-row">
+        {/* Sidebar */}
+        <CategorySidebar 
+          categoryId={categoryId} 
+          onFiltersChange={(filters) => setActiveFilters(filters)} 
+        />
+        
+        {/* Сітка товарів з переданим categoryId та фільтрами */}
+        <div className="flex-1">
+          <ProductGrid categoryId={categoryId} filters={activeFilters} hideTitle={true} wrapperClasses="" />
+        </div>
+      </div>
     </main>
   );
 }

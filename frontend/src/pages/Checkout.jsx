@@ -4,13 +4,20 @@ import { useCart } from '../context/CartContext';
 import { cartService } from '../api/cartService';
 import { orderService } from '../api/orderService';
 import { CreditCard, Truck, CheckCircle } from 'lucide-react';
+import NovaPoshtaAutocomplete from '../components/checkout/NovaPoshtaAutocomplete';
 
 function Checkout() {
   const { cartItems, cartTotal, clearCart } = useCart();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    shippingAddress: '',
+    customerName: '',
+    email: '',
+    deliveryProvider: 'NOVA_POSHTA',
+    deliveryCityRef: '',
+    deliveryCityName: '',
+    deliveryBranchRef: '',
+    deliveryBranchName: '',
     shippingPhone: '',
     paymentMethod: 'CARD' // CARD or CASH
   });
@@ -21,7 +28,24 @@ function Checkout() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Якщо змінюється провайдер доставки, очищаємо попередні дані
+    if (name === 'deliveryProvider') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        deliveryCityRef: '',
+        deliveryCityName: '',
+        deliveryBranchRef: '',
+        deliveryBranchName: ''
+      }));
+      return;
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -58,7 +82,11 @@ function Checkout() {
         userId: 1, // Захардкоджено поки немає повної авторизації
         cartId: cartId,
         paymentMethod: formData.paymentMethod,
-        shippingAddress: formData.shippingAddress,
+        customerName: formData.customerName,
+        email: formData.email,
+        deliveryProvider: formData.deliveryProvider,
+        deliveryCity: formData.deliveryProvider === 'NOVA_POSHTA' ? formData.deliveryCityName : formData.deliveryCityRef,
+        deliveryBranch: formData.deliveryProvider === 'NOVA_POSHTA' ? formData.deliveryBranchName : formData.deliveryBranchRef,
         shippingPhone: formData.shippingPhone
       };
 
@@ -141,6 +169,30 @@ function Checkout() {
                 </h2>
                 <div className="grid grid-cols-1 gap-6">
                   <div>
+                    <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">ПІБ</label>
+                    <input
+                      type="text"
+                      name="customerName"
+                      value={formData.customerName}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full border-b border-gray-300 py-3 text-gray-900 focus:outline-none focus:border-gray-900 transition-colors bg-transparent placeholder-gray-400"
+                      placeholder="Олена Коваленко"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full border-b border-gray-300 py-3 text-gray-900 focus:outline-none focus:border-gray-900 transition-colors bg-transparent placeholder-gray-400"
+                      placeholder="example@gmail.com"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Телефон</label>
                     <input
                       type="tel"
@@ -152,18 +204,96 @@ function Checkout() {
                       placeholder="+380..."
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Адреса доставки (Нова Пошта)</label>
-                    <textarea
-                      name="shippingAddress"
-                      value={formData.shippingAddress}
-                      onChange={handleInputChange}
-                      required
-                      rows={3}
-                      className="w-full border-b border-gray-300 py-3 text-gray-900 focus:outline-none focus:border-gray-900 transition-colors bg-transparent resize-none placeholder-gray-400"
-                      placeholder="Місто, відділення..."
-                    />
+                  
+                  <div className="pt-4 pb-2">
+                    <label className="block text-xs uppercase tracking-widest text-gray-500 mb-3">Спосіб доставки</label>
+                    <div className="flex space-x-4">
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="deliveryProvider"
+                          value="NOVA_POSHTA"
+                          checked={formData.deliveryProvider === 'NOVA_POSHTA'}
+                          onChange={handleInputChange}
+                          className="w-4 h-4 text-gray-900 border-gray-300 focus:ring-gray-900"
+                        />
+                        <span className="text-sm text-gray-700">Нова Пошта</span>
+                      </label>
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="deliveryProvider"
+                          value="UKRPOSHTA"
+                          checked={formData.deliveryProvider === 'UKRPOSHTA'}
+                          onChange={handleInputChange}
+                          className="w-4 h-4 text-gray-900 border-gray-300 focus:ring-gray-900"
+                        />
+                        <span className="text-sm text-gray-700">Укрпошта</span>
+                      </label>
+                    </div>
                   </div>
+
+                  {formData.deliveryProvider === 'NOVA_POSHTA' ? (
+                    <>
+                      <NovaPoshtaAutocomplete
+                        label="Місто доставки (Нова Пошта)"
+                        type="city"
+                        placeholder="Почніть вводити назву міста..."
+                        value={formData.deliveryCityRef}
+                        onChange={(ref, name) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            deliveryCityRef: ref,
+                            deliveryCityName: name,
+                            deliveryBranchRef: '',
+                            deliveryBranchName: ''
+                          }));
+                        }}
+                      />
+
+                      <NovaPoshtaAutocomplete
+                        label="Відділення"
+                        type="branch"
+                        cityRef={formData.deliveryCityRef}
+                        placeholder={formData.deliveryCityRef ? "Оберіть відділення..." : "Спочатку оберіть місто"}
+                        value={formData.deliveryBranchRef}
+                        onChange={(ref, name) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            deliveryBranchRef: ref,
+                            deliveryBranchName: name
+                          }));
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Місто та область</label>
+                        <input
+                          type="text"
+                          name="deliveryCityRef"
+                          value={formData.deliveryCityRef}
+                          onChange={handleInputChange}
+                          required
+                          className="w-full border-b border-gray-300 py-3 text-gray-900 focus:outline-none focus:border-gray-900 transition-colors bg-transparent placeholder-gray-400"
+                          placeholder="Наприклад: м. Київ, Київська обл."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Вулиця, будинок, номер відділення або індекс</label>
+                        <input
+                          type="text"
+                          name="deliveryBranchRef"
+                          value={formData.deliveryBranchRef}
+                          onChange={handleInputChange}
+                          required
+                          className="w-full border-b border-gray-300 py-3 text-gray-900 focus:outline-none focus:border-gray-900 transition-colors bg-transparent placeholder-gray-400"
+                          placeholder="Наприклад: Відділення 01001, вул. Хрещатик 22"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </section>
 
@@ -185,12 +315,12 @@ function Checkout() {
                     />
                     <span className="ml-4 text-sm font-medium">Оплата карткою</span>
                   </label>
-                  <label className={`flex items-center p-4 border transition-colors cursor-pointer ${formData.paymentMethod === 'CASH' ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                  <label className={`flex items-center p-4 border transition-colors cursor-pointer ${formData.paymentMethod === 'CASH_ON_DELIVERY' ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}>
                     <input
                       type="radio"
                       name="paymentMethod"
-                      value="CASH"
-                      checked={formData.paymentMethod === 'CASH'}
+                      value="CASH_ON_DELIVERY"
+                      checked={formData.paymentMethod === 'CASH_ON_DELIVERY'}
                       onChange={handleInputChange}
                       className="accent-gray-900 w-4 h-4"
                     />

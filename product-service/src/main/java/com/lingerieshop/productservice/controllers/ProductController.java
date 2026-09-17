@@ -63,6 +63,15 @@ public class ProductController {
         List<ProductResponseDTO> products = productService.getProductsByCategory(categoryId);
         return ResponseEntity.ok(products);
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<ProductResponseDTO>> searchProducts(
+            @RequestParam Long categoryId,
+            @RequestParam(required = false) Map<String, String> allParams) {
+        Map<String, String> attributes = new java.util.HashMap<>(allParams);
+        attributes.remove("categoryId");
+        return ResponseEntity.ok(productService.searchProducts(categoryId, attributes));
+    }
     
     // F2-05: Check stock availability for variant
     @GetMapping("/{productId}/variants/{variantId}/stock")

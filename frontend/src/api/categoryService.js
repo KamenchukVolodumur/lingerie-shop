@@ -25,6 +25,16 @@ export const categoryService = {
 
   deleteCategory: async (id) => {
     await api.delete(`/categories/${id}`);
+  },
+
+  getCategoryFilters: async (id) => {
+    try {
+      const response = await api.get(`/categories/${id}/filters`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to load category filters", error);
+      return {};
+    }
   }
 };
 

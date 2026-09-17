@@ -14,6 +14,10 @@ export default defineConfig({
         target: 'http://localhost:8083',
         changeOrigin: true
       },
+      '/api/v1/delivery': {
+        target: 'http://localhost:8083',
+        changeOrigin: true
+      },
       '/api/carts': {
         target: 'http://localhost:8082',
         changeOrigin: true

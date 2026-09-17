@@ -80,6 +80,7 @@ export const mapProductFromBackend = (productDto) => {
     categoryId: productDto.category,
     inStock: totalStock > 0,
     colors: colors,
+    attributes: productDto.attributes || {},
     // Original raw variants for strict checking later if needed
     rawVariants: productDto.variants
   };

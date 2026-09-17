@@ -47,7 +47,10 @@ public class OrderService {
         order.setStatus(OrderStatus.NEW);
         order.setPaymentMethod(createOrderRequest.paymentMethod());
         order.setPaymentStatus(PaymentStatus.PENDING);
-        order.setShippingAddress(createOrderRequest.shippingAddress());
+        
+        String providerName = createOrderRequest.deliveryProvider().equals("NOVA_POSHTA") ? "Нова Пошта" : "Укрпошта";
+        order.setShippingAddress(providerName + ": " + createOrderRequest.deliveryCity() + ", " + createOrderRequest.deliveryBranch());
+        
         order.setShippingPhone(createOrderRequest.shippingPhone());
         // TODO: заглушка — потім рахувати реальну вартість доставки
         order.setShippingCost(BigDecimal.valueOf(100));

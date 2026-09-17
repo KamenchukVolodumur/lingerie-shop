@@ -1,5 +1,10 @@
 server:
   port: 8083
+
+novaposhta:
+  api:
+    key: a5bfc266a3c2ff22ace4a65363b9c4da
+
 app:
   services:
     cart-service-url: http://localhost:8082

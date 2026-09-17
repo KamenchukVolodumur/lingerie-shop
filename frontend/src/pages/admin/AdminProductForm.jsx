@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Upload, X, Plus, Trash2, Search, ChevronDown, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { categoryService } from '../../api/categoryService';
+import { translateKey, translateValue } from '../../utils/translations';
 import { productService } from '../../api/productService';
 
 function AdminProductForm({ onClose, onSubmit, initialData }) {
@@ -71,6 +72,45 @@ function AdminProductForm({ onClose, onSubmit, initialData }) {
     }
   };
 
+  const [attributes, setAttributes] = useState(() => {
+    if (initialData?.attributes && Object.keys(initialData.attributes).length > 0) {
+      return Object.entries(initialData.attributes).map(([key, value]) => ({ key, value }));
+    }
+    return [];
+  });
+
+  // Існуючі фільтри з бази для автокомпліту
+  const [existingFilters, setExistingFilters] = useState({});
+  const [openDropdown, setOpenDropdown] = useState(null); // "key-0", "value-2", etc.
+
+  // Підтягуємо існуючі атрибути коли змінюється категорія
+  useEffect(() => {
+    if (formData.categoryId) {
+      categoryService.getCategoryFilters(formData.categoryId).then(data => {
+        setExistingFilters(data || {});
+      }).catch(() => setExistingFilters({}));
+    }
+  }, [formData.categoryId]);
+
+  const handleAttributeChange = (index, field, value) => {
+    const newAttributes = [...attributes];
+    newAttributes[index][field] = value;
+    setAttributes(newAttributes);
+  };
+
+  const selectSuggestion = (index, field, value) => {
+    handleAttributeChange(index, field, value);
+    setOpenDropdown(null);
+  };
+
+  const addAttribute = () => {
+    setAttributes([...attributes, { key: '', value: '' }]);
+  };
+
+  const removeAttribute = (index) => {
+    setAttributes(attributes.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -91,7 +131,11 @@ function AdminProductForm({ onClose, onSubmit, initialData }) {
           size: v.size,
           color: v.color,
           stockQuantity: parseInt(v.stock) || 0
-        }))
+        })),
+        attributes: attributes.reduce((acc, curr) => {
+          if (curr.key && curr.value) acc[curr.key] = curr.value;
+          return acc;
+        }, {})
       };
 
       await onSubmit(productCreateDTO);
@@ -211,6 +255,129 @@ function AdminProductForm({ onClose, onSubmit, initialData }) {
                   <p className="text-xs text-gray-400 mt-2">JPG, PNG до 5MB</p>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Характеристики (Атрибути) */}
+          <div className="space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+              <h3 className="text-sm font-medium tracking-widest uppercase text-gray-900">Характеристики (Атрибути)</h3>
+              <button 
+                type="button" 
+                onClick={addAttribute}
+                className="text-xs uppercase tracking-widest font-medium text-gray-600 hover:text-gray-900 flex items-center"
+              >
+                <Plus size={14} className="mr-1" /> Додати параметр
+              </button>
+            </div>
+            
+            {Object.keys(existingFilters).length > 0 && attributes.length === 0 && (
+              <div className="flex flex-wrap gap-2">
+                <span className="text-xs text-gray-400 mr-1 self-center">Швидке додавання:</span>
+                {Object.keys(existingFilters).map(key => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setAttributes(prev => [...prev, { key, value: '' }])}
+                    className="px-3 py-1 text-xs border border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900 transition-colors rounded-sm"
+                  >
+                    + {key}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {attributes.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">Немає характеристик. Натисніть "Додати параметр" або оберіть існуючий вище.</p>
+              ) : (
+                attributes.map((attr, index) => {
+                  const keySuggestions = Object.keys(existingFilters).filter(
+                    k => k.toLowerCase().includes(attr.key.toLowerCase()) && k !== attr.key
+                  );
+                  const valueSuggestions = attr.key && existingFilters[attr.key]
+                    ? [...existingFilters[attr.key]].filter(
+                        v => v.toLowerCase().includes(attr.value.toLowerCase()) && v !== attr.value
+                      )
+                    : [];
+
+                  return (
+                    <div key={index} className="flex items-start space-x-4 bg-gray-50 p-4 border border-gray-100 rounded-sm">
+                      {/* Ключ з автокомплітом */}
+                      <div className="flex-1 relative">
+                        <label className="block text-xs text-gray-500 mb-1">Ключ (напр. material)</label>
+                        <input
+                          type="text"
+                          value={attr.key}
+                          onChange={(e) => {
+                            handleAttributeChange(index, 'key', e.target.value);
+                            setOpenDropdown(`key-${index}`);
+                          }}
+                          onFocus={() => setOpenDropdown(`key-${index}`)}
+                          onBlur={() => setTimeout(() => setOpenDropdown(null), 150)}
+                          placeholder="Ключ"
+                          required
+                          className="w-full border border-gray-300 p-2 text-sm focus:outline-none focus:border-gray-900 bg-white"
+                        />
+                        {openDropdown === `key-${index}` && keySuggestions.length > 0 && (
+                          <div className="absolute z-20 top-full left-0 right-0 bg-white border border-gray-200 shadow-lg max-h-32 overflow-y-auto">
+                            {keySuggestions.map(suggestion => (
+                              <button
+                                key={suggestion}
+                                type="button"
+                                onMouseDown={() => selectSuggestion(index, 'key', suggestion)}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {/* Значення з автокомплітом */}
+                      <div className="flex-1 relative">
+                        <label className="block text-xs text-gray-500 mb-1">Значення (напр. cotton)</label>
+                        <input
+                          type="text"
+                          value={attr.value}
+                          onChange={(e) => {
+                            handleAttributeChange(index, 'value', e.target.value);
+                            setOpenDropdown(`value-${index}`);
+                          }}
+                          onFocus={() => setOpenDropdown(`value-${index}`)}
+                          onBlur={() => setTimeout(() => setOpenDropdown(null), 150)}
+                          placeholder="Значення"
+                          required
+                          className="w-full border border-gray-300 p-2 text-sm focus:outline-none focus:border-gray-900 bg-white"
+                        />
+                        {openDropdown === `value-${index}` && valueSuggestions.length > 0 && (
+                          <div className="absolute z-20 top-full left-0 right-0 bg-white border border-gray-200 shadow-lg max-h-32 overflow-y-auto">
+                            {valueSuggestions.map(suggestion => (
+                              <button
+                                key={suggestion}
+                                type="button"
+                                onMouseDown={() => selectSuggestion(index, 'value', suggestion)}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 transition-colors"
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="pt-5">
+                        <button 
+                          type="button" 
+                          onClick={() => removeAttribute(index)}
+                          className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 

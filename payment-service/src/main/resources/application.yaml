@@ -1,0 +1,31 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: payment-service
+
+  profiles:
+    active: local
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/lingerie_payments
+    username: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: false
+
+app:
+  monobank:
+    api-url: https://api.monobank.ua/api/merchant/invoice/create
+    token: "твій_секретний_токен_з_кабінету_монобанку"
+    web-hook-url: https://твій-домен.com/api/v1/payments/webhook
