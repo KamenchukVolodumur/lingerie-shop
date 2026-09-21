@@ -1,18 +1,22 @@
 package com.lingerieshop.orderservice.services;
 
 import com.lingerieshop.orderservice.clients.CartServiceClient;
+import com.lingerieshop.orderservice.clients.PaymentServiceClient;
 import com.lingerieshop.orderservice.clients.ProductServiceClient;
 import com.lingerieshop.orderservice.dto.CartResponseDTO;
 import com.lingerieshop.orderservice.dto.CreateOrderRequestDTO;
 import com.lingerieshop.orderservice.dto.DeductStockRequestDTO;
 import com.lingerieshop.orderservice.dto.OrderItemResponseDTO;
 import com.lingerieshop.orderservice.dto.OrderResponseDTO;
+import com.lingerieshop.orderservice.dto.PaymentLinkResponseDTO;
+import com.lingerieshop.orderservice.dto.PaymentRequestDTO;
 import com.lingerieshop.orderservice.entities.Order;
 import com.lingerieshop.orderservice.entities.OrderItem;
 import com.lingerieshop.orderservice.entities.enums.OrderStatus;
+import com.lingerieshop.orderservice.entities.enums.PaymentMethod;
 import com.lingerieshop.orderservice.entities.enums.PaymentStatus;
 import com.lingerieshop.orderservice.repositories.OrderRepository;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,10 +29,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class OrderService {
     private final CartServiceClient cartServiceClient;
     private final ProductServiceClient productServiceClient;
+    private final PaymentServiceClient paymentServiceClient;
     private final OrderRepository orderRepository;
 
     @Transactional
@@ -74,6 +79,13 @@ public class OrderService {
         order.setTotalAmount(cart.totalSum().add(order.getShippingCost()));
 
         Order saved = orderRepository.save(order);
+        String paymentUrl = null;
+
+        if (saved.getPaymentMethod() == PaymentMethod.CARD) {
+            PaymentLinkResponseDTO paymentLink = paymentServiceClient.generatePaymentLink(
+                    new PaymentRequestDTO(saved.getId(), saved.getTotalAmount()));
+            paymentUrl = paymentLink.paymentUrl();
+        }
 
 //        List<DeductStockRequestDTO> deductRequests = items.stream()
 //                .map(i -> new DeductStockRequestDTO(i.getProductVariantId(), i.getQuantity()))
@@ -82,7 +94,7 @@ public class OrderService {
 
         cartServiceClient.clearCart(createOrderRequest.cartId());
 
-        return mapToDTO(saved);
+        return mapToDTO(saved, paymentUrl);
     }
 
     private String generateOrderNumber() {
@@ -112,6 +124,22 @@ public class OrderService {
             throw new IllegalStateException(
                     "Only NEW orders can be confirmed, current status: " + order.getStatus());
         }
+
+        List<DeductStockRequestDTO> stockAdjustments = order.getItems().stream()
+                .map(item -> new DeductStockRequestDTO(item.getProductVariantId(), item.getQuantity()))
+                .toList();
+        productServiceClient.deductStock(stockAdjustments);
+
+        try {
+            if (order.getPaymentMethod() == PaymentMethod.CARD) {
+                paymentServiceClient.capturePayment(orderId);
+                order.setPaymentStatus(PaymentStatus.PAID);
+            }
+        } catch (RuntimeException exception) {
+            productServiceClient.releaseStock(stockAdjustments);
+            throw exception;
+        }
+
         order.setStatus(OrderStatus.CONFIRMED);
         return mapToDTO(orderRepository.save(order));
     }
@@ -126,12 +154,24 @@ public class OrderService {
     @Transactional
     public OrderResponseDTO markAsPaid(Long orderId) {            // PENDING -> PAID
         Order order = findOrderById(orderId);
+        if (order.getPaymentMethod() != PaymentMethod.CASH_ON_DELIVERY) {
+            throw new IllegalStateException("Card payments are captured when the order is confirmed");
+        }
         if (order.getPaymentStatus() != PaymentStatus.PENDING) {
             throw new IllegalStateException(
                     "Only PENDING payments can be marked as PAID, current status: " + order.getPaymentStatus());
         }
         order.setPaymentStatus(PaymentStatus.PAID);
         return mapToDTO(orderRepository.save(order));
+    }
+
+    @Transactional
+    public void markPaymentFailed(Long orderId) {
+        Order order = findOrderById(orderId);
+        if (order.getStatus() == OrderStatus.NEW) {
+            order.setPaymentStatus(PaymentStatus.FAILED);
+            order.setStatus(OrderStatus.CANCELLED);
+        }
     }
 
     @Transactional
@@ -182,27 +222,16 @@ public class OrderService {
     @Transactional
     public OrderResponseDTO cancelOrder(Long orderId) {           // NEW/CONFIRMED -> CANCELLED
         Order order = findOrderById(orderId);
-        if (order.getStatus() == OrderStatus.SHIPPED || order.getStatus() == OrderStatus.COMPLETED) {
-            throw new IllegalStateException(
-                    "Cannot cancel order with status: " + order.getStatus());
+        if (order.getStatus() != OrderStatus.NEW) {
+            throw new IllegalStateException("Only NEW orders can be canceled, current status: " + order.getStatus());
         }
-        if (order.getStatus() == OrderStatus.CANCELLED) {
-            throw new IllegalStateException("Order is already cancelled: " + orderId);
+
+        if (order.getPaymentMethod() == PaymentMethod.CARD) {
+            paymentServiceClient.cancelPayment(orderId);
+            order.setPaymentStatus(PaymentStatus.CANCELED);
         }
 
         order.setStatus(OrderStatus.CANCELLED);
-
-        // Повертаємо зарезервований товар на склад
-        List<DeductStockRequestDTO> releaseRequests = order.getItems().stream()
-                .map(i -> new DeductStockRequestDTO(i.getProductVariantId(), i.getQuantity()))
-                .toList();
-        productServiceClient.releaseStock(releaseRequests);
-
-        // Якщо вже оплачено — позначаємо, що потрібне повернення коштів
-        if (order.getPaymentStatus() == PaymentStatus.PAID) {
-            order.setPaymentStatus(PaymentStatus.REFUNDED);
-        }
-
         return mapToDTO(orderRepository.save(order));
     }
 
@@ -212,6 +241,10 @@ public class OrderService {
     }
 
     public OrderResponseDTO mapToDTO(Order order) {
+        return mapToDTO(order, null);
+    }
+
+    private OrderResponseDTO mapToDTO(Order order, String paymentUrl) {
         List<OrderItemResponseDTO> items = order.getItems() == null
                 ? List.of()
                 : order.getItems().stream()
@@ -232,7 +265,8 @@ public class OrderService {
                 items,
                 order.getConfirmationEmailSentAt(),
                 order.getCreatedAt(),
-                order.getUpdatedAt()
+                order.getUpdatedAt(),
+                paymentUrl
         );
     }
 

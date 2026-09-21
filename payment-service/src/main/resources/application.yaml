@@ -25,7 +25,13 @@ spring:
     enabled: false
 
 app:
+  services:
+    order-service-url: ${ORDER_SERVICE_URL:http://localhost:8083}
   monobank:
-    api-url: https://api.monobank.ua/api/merchant/invoice/create
-    token: "твій_секретний_токен_з_кабінету_монобанку"
-    web-hook-url: https://твій-домен.com/api/v1/payments/webhook
+    api-url: ${MONOBANK_API_URL:https://api.monobank.ua}
+    token: ${MONOBANK_TOKEN}
+    web-hook-url: ${MONOBANK_WEB_HOOK_URL}
+    hold-expiration: ${MONOBANK_HOLD_EXPIRATION:PT24H}
+    hold-expiration-check-interval: ${MONOBANK_HOLD_EXPIRATION_CHECK_INTERVAL:PT5M}
+  urls:
+    order-success-url: ${ORDER_SUCCESS_URL:http://localhost:5173/order-success}

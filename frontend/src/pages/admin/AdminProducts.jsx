@@ -3,6 +3,7 @@ import { productService } from '../../api/productService';
 import { categoryService } from '../../api/categoryService';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import AdminProductForm from './AdminProductForm';
+import { formatUah } from '../../utils/currency';
 
 function AdminProducts() {
   const [products, setProducts] = useState([]);
@@ -125,7 +126,7 @@ function AdminProducts() {
                   </div>
                 </td>
                 <td className="p-4 text-sm font-medium text-gray-900">{product.name}</td>
-                <td className="p-4 text-sm text-gray-500">{product.price}</td>
+                <td className="p-4 text-sm text-gray-500">{formatUah(product.price)}</td>
                 <td className="p-4 text-sm text-gray-500">{categories[product.categoryId] || 'Без категорії'}</td>
                 <td className="p-4 text-right">
                   <div className="flex justify-end space-x-2">

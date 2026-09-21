@@ -36,7 +36,7 @@ public class Product {
     private String imageUrl;
 
     @Column(nullable = false)
-    private BigDecimal price;
+    private BigDecimal price; // Price in UAH.
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")

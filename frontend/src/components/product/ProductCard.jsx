@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { formatUah } from '../../utils/currency';
 import { useCart } from '../../context/CartContext';
 
 function ProductCard({ product }) {
@@ -63,7 +64,7 @@ function ProductCard({ product }) {
           </Link>
           <p className="text-xs text-gray-500 mt-1">{product.colors.length} {product.colors.length === 1 ? 'Колір' : 'Кольори'}</p>
         </div>
-        <p className={`text-sm font-medium ${isOutOfStock ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{product.price}</p>
+        <p className={`text-sm font-medium ${isOutOfStock ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{formatUah(product.price)}</p>
       </div>
       
       {/* Mobile add to cart */}

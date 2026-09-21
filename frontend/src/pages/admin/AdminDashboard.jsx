@@ -12,6 +12,7 @@ import {
   Filter
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { formatUah } from '../../utils/currency';
 
 const MONTH_NAMES = {
   "01": "Січень", "02": "Лютий", "03": "Березень", "04": "Квітень",
@@ -178,7 +179,7 @@ function AdminDashboard() {
           </div>
           <div>
             <p className="text-sm text-gray-500 uppercase tracking-wider mb-1">Дохід</p>
-            <h3 className="text-2xl font-medium">${stats.totalRevenue.toFixed(2)}</h3>
+            <h3 className="text-2xl font-medium">{formatUah(stats.totalRevenue)}</h3>
           </div>
         </div>
 
@@ -239,7 +240,7 @@ function AdminDashboard() {
                       </p>
                     </td>
                     <td className="p-4 text-sm text-gray-600">{order.shippingPhone}</td>
-                    <td className="p-4 text-sm font-medium">${parseFloat(order.totalAmount).toFixed(2)}</td>
+                    <td className="p-4 text-sm font-medium">{formatUah(order.totalAmount)}</td>
                     <td className="p-4">{getStatusBadge(order.status)}</td>
                   </tr>
                 ))}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { formatUah } from '../utils/currency';
 import { Minus, Plus } from 'lucide-react';
 import { productService } from '../api/productService';
 import { translateKey, translateValue } from '../utils/translations';
@@ -118,7 +119,7 @@ function ProductDetails() {
               {product.name}
             </h1>
             <p className={`mt-4 text-xl font-medium ${isOutOfStock ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
-              {product.price}
+              {formatUah(product.price)}
             </p>
 
             {/* Colors */}

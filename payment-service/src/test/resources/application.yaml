@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:payment-service-test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  flyway:
+    enabled: false
+
+app:
+  services:
+    order-service-url: http://localhost:8083
+  monobank:
+    api-url: http://localhost:9999
+    token: test-token
+    web-hook-url: http://localhost:8084/api/v1/payments/webhook
+  urls:
+    order-success-url: http://localhost:5173/order-success

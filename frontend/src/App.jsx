@@ -12,6 +12,8 @@ import Register from './pages/Register';
 import ProductDetails from './pages/ProductDetails';
 import CategoryPage from './pages/CategoryPage';
 import Checkout from './pages/Checkout';
+import OrderSuccess from './pages/OrderSuccess';
+import Account from './pages/Account';
 
 // Admin imports
 import AdminLogin from './pages/admin/AdminLogin';
@@ -42,6 +44,8 @@ function App() {
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/category/:categoryId" element={<CategoryPage />} />
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/order-success" element={<OrderSuccess />} />
+        <Route path="/account" element={<Account />} />
 
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />

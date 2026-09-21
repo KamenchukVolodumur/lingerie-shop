@@ -5,6 +5,7 @@ import { cartService } from '../api/cartService';
 import { orderService } from '../api/orderService';
 import { CreditCard, Truck, CheckCircle } from 'lucide-react';
 import NovaPoshtaAutocomplete from '../components/checkout/NovaPoshtaAutocomplete';
+import { formatUah } from '../utils/currency';
 
 function Checkout() {
   const { cartItems, cartTotal, clearCart } = useCart();
@@ -90,7 +91,16 @@ function Checkout() {
         shippingPhone: formData.shippingPhone
       };
 
-      await orderService.createOrder(orderRequest);
+      const createdOrder = await orderService.createOrder(orderRequest);
+
+      if (formData.paymentMethod === 'CARD') {
+        if (!createdOrder.paymentUrl) {
+          throw new Error("Не вдалося отримати посилання на оплату");
+        }
+
+        window.location.assign(createdOrder.paymentUrl);
+        return;
+      }
 
       // Успіх!
       setIsSuccess(true);
@@ -367,7 +377,7 @@ function Checkout() {
                       </div>
                       <div className="flex justify-between items-end mt-2">
                         <p className="text-xs text-gray-500">Кількість: {item.quantity}</p>
-                        <p className="text-sm font-medium text-gray-900">{item.price}</p>
+                        <p className="text-sm font-medium text-gray-900">{formatUah(item.price)}</p>
                       </div>
                     </div>
                   </div>
@@ -381,7 +391,7 @@ function Checkout() {
                 </div>
                 <div className="flex justify-between text-lg font-medium text-gray-900 uppercase">
                   <span>До сплати</span>
-                  <span>${cartTotal}</span>
+                  <span>{formatUah(cartTotal)}</span>
                 </div>
               </div>
             </div>

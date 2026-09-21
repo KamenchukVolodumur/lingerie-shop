@@ -43,13 +43,18 @@ function Header({ setIsMenuOpen }) {
             </button>
             
             {isAuthenticated ? (
-              <button 
-                onClick={logout}
-                className="text-gray-900 hover:text-gray-500 transition-colors hidden sm:flex items-center"
-                title="Вийти"
-              >
-                <LogOut size={22} strokeWidth={1.2} />
-              </button>
+              <>
+                <Link to="/account" className="text-gray-900 hover:text-gray-500 transition-colors hidden sm:block" title="Особистий кабінет">
+                  <User size={22} strokeWidth={1.2} />
+                </Link>
+                <button
+                  onClick={logout}
+                  className="text-gray-900 hover:text-gray-500 transition-colors hidden sm:flex items-center"
+                  title="Вийти"
+                >
+                  <LogOut size={22} strokeWidth={1.2} />
+                </button>
+              </>
             ) : (
               <Link to="/login" className="text-gray-900 hover:text-gray-500 transition-colors hidden sm:block" title="Увійти">
                 <User size={22} strokeWidth={1.2} />

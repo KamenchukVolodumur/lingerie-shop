@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminOrderService } from '../../api/adminOrderService';
 import { Search, MoreVertical, CheckCircle, Truck, Package, XCircle, ChevronDown, ChevronUp, Undo } from 'lucide-react';
+import { formatUah } from '../../utils/currency';
 
 function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -131,7 +132,7 @@ function AdminOrders() {
                     <div className="text-xs text-gray-500">{order.shippingPhone}</div>
                   </td>
                   <td className="p-4 text-sm font-medium text-gray-900">
-                    ${order.totalAmount}
+                    {formatUah(order.totalAmount)}
                     <div className="text-xs text-gray-400 font-normal mt-1">{order.paymentMethod}</div>
                   </td>
                   <td className="p-4">
@@ -157,12 +158,12 @@ function AdminOrders() {
                           <Package size={18} />
                         </button>
                       )}
-                      {order.paymentStatus === 'PENDING' && order.status !== 'CANCELLED' && (
+                      {order.paymentMethod === 'CASH_ON_DELIVERY' && order.paymentStatus === 'PENDING' && order.status !== 'CANCELLED' && (
                         <button onClick={() => handleStatusUpdate(order.id, 'PAY')} title="Позначити як оплачено" className="p-2 text-gray-600 hover:bg-gray-100 rounded-full">
                           $
                         </button>
                       )}
-                      {(order.status === 'NEW' || order.status === 'CONFIRMED') && (
+                      {order.status === 'NEW' && (
                         <button onClick={() => handleStatusUpdate(order.id, 'CANCEL')} title="Скасувати" className="p-2 text-red-600 hover:bg-red-50 rounded-full">
                           <XCircle size={18} />
                         </button>
@@ -203,7 +204,7 @@ function AdminOrders() {
                                     {item.variantColor} / {item.variantSize}
                                   </td>
                                   <td className="py-2 text-sm font-medium text-gray-900 text-center">{item.quantity} шт</td>
-                                  <td className="py-2 text-sm text-gray-500 text-right">${item.pricePerUnit}</td>
+                                  <td className="py-2 text-sm text-gray-500 text-right">{formatUah(item.pricePerUnit)}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -217,7 +218,7 @@ function AdminOrders() {
                             <strong>Адреса:</strong> {order.shippingAddress || 'Не вказана'}
                           </div>
                           <div className="text-sm font-medium">
-                            Разом: ${order.totalAmount}
+                            Разом: {formatUah(order.totalAmount)}
                           </div>
                         </div>
                       </div>

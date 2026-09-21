@@ -12,7 +12,7 @@ function AdminProductForm({ onClose, onSubmit, initialData }) {
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
     description: initialData?.description || '',
-    price: initialData?.price ? parseFloat(initialData.price.replace('$', '')) : '',
+    price: initialData?.price ? Number(initialData.price) : '',
     categoryId: initialData?.categoryId || '',
     imageUrl: initialData?.imageUrl || ''
   });
@@ -195,7 +195,7 @@ function AdminProductForm({ onClose, onSubmit, initialData }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Ціна (USD)</label>
+                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Ціна (грн)</label>
                 <input
                   type="number"
                   name="price"

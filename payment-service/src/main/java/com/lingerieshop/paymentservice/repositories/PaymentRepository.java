@@ -1,10 +1,13 @@
 package com.lingerieshop.paymentservice.repositories;
 
 import com.lingerieshop.paymentservice.entities.PaymentTransaction;
+import com.lingerieshop.paymentservice.entities.PaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<PaymentTransaction, String> {
@@ -14,4 +17,6 @@ public interface PaymentRepository extends JpaRepository<PaymentTransaction, Str
 
     // ЗНАЙТИ ТРАНЗАКЦІЮ ЗА КЛЮЧОМ ВІД МОНОБАНКУ (критично важливо для вебхуків!)
     Optional<PaymentTransaction> findByExternalBankReference(String externalBankReference);
+
+    List<PaymentTransaction> findByStatusAndUpdatedAtBefore(PaymentStatus status, LocalDateTime updatedAt);
 }

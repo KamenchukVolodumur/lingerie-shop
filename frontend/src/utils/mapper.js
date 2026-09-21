@@ -76,7 +76,7 @@ export const mapProductFromBackend = (productDto) => {
     slug: productDto.slug,
     description: productDto.description,
     imageUrl: productDto.imageUrl,
-    price: `$${parseFloat(productDto.price).toFixed(2)}`,
+    price: Number(productDto.price),
     categoryId: productDto.category,
     inStock: totalStock > 0,
     colors: colors,

@@ -2,6 +2,7 @@ import React from 'react';
 import { X, ShoppingBag, Minus, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { formatUah } from '../../utils/currency';
 
 function CartDrawer() {
   const { isCartOpen, setIsCartOpen, cartItems, cartTotal, removeFromCart, updateQuantity, cartCount } = useCart();
@@ -79,7 +80,7 @@ function CartDrawer() {
                           <Plus size={14} />
                         </button>
                       </div>
-                      <p className="text-sm font-medium text-gray-900">{item.price}</p>
+                      <p className="text-sm font-medium text-gray-900">{formatUah(item.price)}</p>
                     </div>
                   </div>
                 </li>
@@ -92,7 +93,7 @@ function CartDrawer() {
           <div className="border-t border-gray-100 p-6 bg-gray-50">
                 <div className="flex justify-between items-center mb-6">
                   <span className="text-sm uppercase tracking-widest text-gray-500">Загалом</span>
-                  <span className="text-lg font-medium text-gray-900">${cartTotal}</span>
+                  <span className="text-lg font-medium text-gray-900">{formatUah(cartTotal)}</span>
                 </div>
                 <Link
                   to="/checkout"

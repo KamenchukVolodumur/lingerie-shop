@@ -21,5 +21,6 @@ public record OrderResponseDTO(
         List<OrderItemResponseDTO> items,
         LocalDateTime confirmationEmailSentAt,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        String paymentUrl
 ) {}
