@@ -5,6 +5,18 @@ export const adminOrderService = {
     const response = await api.get(`/admin/orders?page=${page}&size=${size}&sort=createdAt,desc`);
     return response.data;
   },
+
+  searchOrdersByNumber: async (orderNumber, page = 0, size = 20) => {
+    const response = await api.get('/admin/orders/search', {
+      params: {
+        orderNumber,
+        page,
+        size,
+        sort: 'createdAt,desc'
+      }
+    });
+    return response.data;
+  },
   
   confirmOrder: async (id) => {
     const response = await api.patch(`/admin/orders/${id}/confirm`);

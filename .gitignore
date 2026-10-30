@@ -5,15 +5,17 @@
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-# === Maven (якщо десь використаєш Maven замість Gradle) ===
+# === Maven ===
 **/target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-# === IDE (IntelliJ IDEA, STS, Eclipse, NetBeans, VS Code) ===
+# === IDEs (IntelliJ IDEA, Eclipse, NetBeans, VS Code, Junie) ===
 .idea/
+**/.idea/
 *.iws
 *.iml
+**/*.iml
 *.ipr
 bin/
 **/bin/
@@ -24,23 +26,36 @@ bin/
 .settings
 .springBeans
 .sts4-cache
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
 .vscode/
+**/.vscode/
+.junie/
+**/.junie/
+*.sw?
+
+# === Frontend / Node ===
+**/node_modules/
+**/dist/
+**/dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # === Operating System / System files ===
 .DS_Store
+**/.DS_Store
 Thumbs.db
+**/Thumbs.db
 ehthumbs.db
+**/ehthumbs.db
 Desktop.ini
+**/Desktop.ini
 
 # === Logs & Temp files ===
 *.log
-logs/
 **/logs/
+logs/
 tmp/
 temp/
 
@@ -48,9 +63,19 @@ temp/
 .env
 .env.*
 !.env.example
+**/.env
+**/.env.*
+!**/.env.example
 **/src/main/resources/application-local.yml
 **/src/main/resources/application-local.yaml
+**/src/main/resources/application-secret.yml
+**/src/main/resources/application-secret.yaml
 **/src/main/resources/application-dev.yml
 **/src/main/resources/application-dev.yaml
+!**/src/main/resources/application-local.yml.example
 
-./payment-service/src/application-local.yml
+# === Certificates & Private Keys ===
+*.pem
+*.key
+*.keystore
+*.jks

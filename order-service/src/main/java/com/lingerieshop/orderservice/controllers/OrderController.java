@@ -4,6 +4,7 @@ import com.lingerieshop.orderservice.dto.CreateOrderRequestDTO;
 import com.lingerieshop.orderservice.dto.OrderResponseDTO;
 import com.lingerieshop.orderservice.services.OrderService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,8 +20,10 @@ public class OrderController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public OrderResponseDTO createOrder(@Valid @RequestBody CreateOrderRequestDTO request) {
-        return orderService.createOrder(request);
+    public OrderResponseDTO createOrder(
+            @RequestHeader("Idempotency-Key") @NotBlank String idempotencyKey,
+            @Valid @RequestBody CreateOrderRequestDTO request) {
+        return orderService.createOrder(request, idempotencyKey);
     }
 
     @GetMapping("/{id}")

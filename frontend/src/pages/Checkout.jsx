@@ -7,6 +7,8 @@ import { CreditCard, Truck, CheckCircle } from 'lucide-react';
 import NovaPoshtaAutocomplete from '../components/checkout/NovaPoshtaAutocomplete';
 import { formatUah } from '../utils/currency';
 
+const CHECKOUT_ATTEMPT_STORAGE_KEY = 'checkout-attempt';
+
 function Checkout() {
   const { cartItems, cartTotal, clearCart } = useCart();
   const navigate = useNavigate();
@@ -59,8 +61,21 @@ function Checkout() {
         throw new Error("Ваш кошик порожній");
       }
 
-      // 1. Генеруємо унікальний cartId для бекенду
-      const cartId = `cart_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      const cartFingerprint = cartItems
+        .map(item => `${item.id}:${item.productVariantId}:${item.size}:${item.color.name}:${item.quantity}`)
+        .sort()
+        .join('|');
+      const storedAttempt = JSON.parse(sessionStorage.getItem(CHECKOUT_ATTEMPT_STORAGE_KEY) || 'null');
+      const checkoutAttempt = storedAttempt?.cartFingerprint === cartFingerprint
+        ? storedAttempt
+        : {
+            cartFingerprint,
+            cartId: crypto.randomUUID(),
+            idempotencyKey: crypto.randomUUID()
+          };
+
+      sessionStorage.setItem(CHECKOUT_ATTEMPT_STORAGE_KEY, JSON.stringify(checkoutAttempt));
+      const { cartId, idempotencyKey } = checkoutAttempt;
 
       // 2. Синхронізуємо локальний кошик з cart-service
       const syncPromises = cartItems.map(item => {
@@ -91,7 +106,7 @@ function Checkout() {
         shippingPhone: formData.shippingPhone
       };
 
-      const createdOrder = await orderService.createOrder(orderRequest);
+      const createdOrder = await orderService.createOrder(orderRequest, idempotencyKey);
 
       if (formData.paymentMethod === 'CARD') {
         if (!createdOrder.paymentUrl) {
@@ -105,6 +120,7 @@ function Checkout() {
       // Успіх!
       setIsSuccess(true);
       clearCart();
+      sessionStorage.removeItem(CHECKOUT_ATTEMPT_STORAGE_KEY);
       
       // Повертаємось на головну через 3 секунди
       setTimeout(() => {

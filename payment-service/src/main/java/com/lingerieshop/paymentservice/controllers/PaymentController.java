@@ -2,6 +2,7 @@ package com.lingerieshop.paymentservice.controllers;
 
 import com.lingerieshop.paymentservice.dto.PaymentLinkResponseDTO;
 import com.lingerieshop.paymentservice.dto.PaymentRequestDTO;
+import com.lingerieshop.paymentservice.dto.PaymentCancellationResponseDTO;
 import com.lingerieshop.paymentservice.services.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -41,8 +42,7 @@ public class PaymentController {
     }
 
     @PostMapping("/{orderId}/cancel")
-    public ResponseEntity<Void> cancelPayment(@PathVariable Long orderId) {
-        paymentService.cancelPayment(orderId);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<PaymentCancellationResponseDTO> cancelPayment(@PathVariable Long orderId) {
+        return ResponseEntity.ok(paymentService.cancelPayment(orderId));
     }
 }

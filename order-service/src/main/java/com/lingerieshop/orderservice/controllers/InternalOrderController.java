@@ -20,4 +20,10 @@ public class InternalOrderController {
         orderService.markPaymentFailed(orderId);
         return ResponseEntity.ok().build();
     }
+
+    @PatchMapping("/{orderId}/payment-canceled")
+    public ResponseEntity<Void> markPaymentCanceled(@PathVariable Long orderId) {
+        orderService.markPaymentCanceled(orderId);
+        return ResponseEntity.ok().build();
+    }
 }

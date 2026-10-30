@@ -9,4 +9,7 @@ public interface OrderServiceClient {
 
     @PatchMapping("/api/v1/internal/orders/{orderId}/payment-failed")
     void markPaymentFailed(@PathVariable("orderId") Long orderId);
+
+    @PatchMapping("/api/v1/internal/orders/{orderId}/payment-canceled")
+    void markPaymentCanceled(@PathVariable("orderId") Long orderId);
 }

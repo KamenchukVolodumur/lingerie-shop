@@ -9,12 +9,16 @@ import com.lingerieshop.paymentservice.dto.MonoInvoiceFinalizeResponseDTO;
 import com.lingerieshop.paymentservice.dto.MonoInvoiceRemoveRequestDTO;
 import com.lingerieshop.paymentservice.dto.PaymentLinkResponseDTO;
 import com.lingerieshop.paymentservice.dto.PaymentRequestDTO;
+import com.lingerieshop.paymentservice.dto.PaymentCancellationResponseDTO;
 import com.lingerieshop.paymentservice.entities.PaymentTransaction;
 import com.lingerieshop.paymentservice.entities.PaymentStatus;
+import com.lingerieshop.paymentservice.exceptions.MonobankOperationException;
+import com.lingerieshop.paymentservice.exceptions.PaymentStateConflictException;
+import com.lingerieshop.paymentservice.exceptions.PaymentTransactionNotFoundException;
 import com.lingerieshop.paymentservice.repositories.PaymentRepository;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.JacksonException;
@@ -22,9 +26,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Locale;
 
 @Service
@@ -41,8 +43,6 @@ public class PaymentService {
     private String orderSuccessUrl;
     @Value("${app.monobank.web-hook-url}")
     private String webHookUrl;
-    @Value("${app.monobank.hold-expiration:PT24H}")
-    private Duration holdExpiration;
 
     private PaymentTransaction mapToPaymentTransaction(PaymentRequestDTO requestDTO) {
         return new PaymentTransaction().builder()
@@ -69,7 +69,7 @@ public class PaymentService {
 
         // Викликаємо Monobank API для створення інвойсу
         MonoInvoiceRequestDTO monoRequest = mapToMonoInvoiceRequestDTO(requestDTO);
-        MonoInvoiceResponseDTO monoResponse = monobankClient.createInvoice(monobankToken, monoRequest);
+        MonoInvoiceResponseDTO monoResponse = createInvoice(monoRequest);
 
         // Оновлюємо транзакцію з посиланням на оплату та зовнішнім ключем
         transaction.setExternalBankReference(monoResponse.invoiceId());
@@ -89,60 +89,87 @@ public class PaymentService {
         String status = requiredText(payload, "status").toLowerCase(Locale.ROOT);
 
         PaymentTransaction transaction = paymentRepository.findByExternalBankReference(invoiceId)
-                .orElseThrow(() -> new IllegalArgumentException("Payment transaction not found for invoice: " + invoiceId));
+                .orElseThrow(() -> new PaymentTransactionNotFoundException(
+                        "Payment transaction not found for invoice: " + invoiceId));
 
-        if ("hold".equals(status)) {
+        if ("hold".equals(status) && transaction.getStatus() != PaymentStatus.RELEASE_PENDING) {
             transaction.setStatus(PaymentStatus.HOLD);
-        } else if ("failure".equals(status) || "expired".equals(status) || "reversed".equals(status)) {
+        } else if ("failure".equals(status)) {
             transaction.setStatus(PaymentStatus.CANCELED);
             orderServiceClient.markPaymentFailed(transaction.getOrderId());
+        } else if ("expired".equals(status) || "reversed".equals(status)) {
+            transaction.setStatus(PaymentStatus.CANCELED);
+            orderServiceClient.markPaymentCanceled(transaction.getOrderId());
         }
-    }
-
-    @Scheduled(fixedDelayString = "${app.monobank.hold-expiration-check-interval:PT5M}")
-    @Transactional
-    public void cancelExpiredHolds() {
-        List<PaymentTransaction> expiredHolds = paymentRepository.findByStatusAndUpdatedAtBefore(
-                PaymentStatus.HOLD,
-                LocalDateTime.now().minus(holdExpiration));
-        expiredHolds.forEach(transaction -> cancelPayment(transaction.getOrderId()));
     }
 
     @Transactional
     public void capturePayment(Long orderId) {
         PaymentTransaction transaction = paymentRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Payment transaction not found for order: " + orderId));
+                .orElseThrow(() -> new PaymentTransactionNotFoundException(
+                        "Payment transaction not found for order: " + orderId));
         if (transaction.getStatus() != PaymentStatus.HOLD) {
-            throw new IllegalStateException("Only held payments can be captured, current status: " + transaction.getStatus());
+            throw new PaymentStateConflictException(
+                    "Only held payments can be captured, current status: " + transaction.getStatus());
         }
 
-        MonoInvoiceFinalizeResponseDTO response = monobankClient.finalizeInvoice(
-                monobankToken,
-                new MonoInvoiceFinalizeRequestDTO(
-                        transaction.getExternalBankReference(),
-                        transaction.getAmount().movePointRight(2).longValueExact()));
-        if (!"success".equalsIgnoreCase(response.status())) {
-            throw new IllegalStateException("Monobank did not accept payment capture");
-        }
-
+        finalizeInvoice(transaction, transaction.getAmount().movePointRight(2).longValueExact(), "capture");
         transaction.setStatus(PaymentStatus.PAID);
     }
 
     @Transactional
-    public void cancelPayment(Long orderId) {
+    public PaymentCancellationResponseDTO cancelPayment(Long orderId) {
         PaymentTransaction transaction = paymentRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Payment transaction not found for order: " + orderId));
-        if (transaction.getStatus() == PaymentStatus.CANCELED) {
-            return;
-        }
-        if (transaction.getStatus() == PaymentStatus.PAID) {
-            throw new IllegalStateException("Captured payments must be refunded, not canceled");
+                .orElseThrow(() -> new PaymentTransactionNotFoundException(
+                        "Payment transaction not found for order: " + orderId));
+
+        switch (transaction.getStatus()) {
+            case CANCELED, RELEASE_PENDING -> {
+                return new PaymentCancellationResponseDTO(transaction.getStatus());
+            }
+            case PENDING -> {
+                removeInvoice(transaction);
+                transaction.setStatus(PaymentStatus.CANCELED);
+            }
+            case HOLD -> transaction.setStatus(PaymentStatus.RELEASE_PENDING);
+            case PAID -> throw new PaymentStateConflictException(
+                    "Captured payments must be refunded, not canceled");
         }
 
-        monobankClient.removeInvoice(
-                monobankToken,
-                new MonoInvoiceRemoveRequestDTO(transaction.getExternalBankReference()));
-        transaction.setStatus(PaymentStatus.CANCELED);
+        return new PaymentCancellationResponseDTO(transaction.getStatus());
+    }
+
+    private MonoInvoiceResponseDTO createInvoice(MonoInvoiceRequestDTO request) {
+        try {
+            return monobankClient.createInvoice(monobankToken, request);
+        } catch (FeignException exception) {
+            throw new MonobankOperationException("Monobank could not create an invoice", exception);
+        }
+    }
+
+    private void removeInvoice(PaymentTransaction transaction) {
+        try {
+            monobankClient.removeInvoice(
+                    monobankToken,
+                    new MonoInvoiceRemoveRequestDTO(transaction.getExternalBankReference()));
+        } catch (FeignException exception) {
+            throw new MonobankOperationException(
+                    "Monobank could not deactivate the unpaid invoice", exception);
+        }
+    }
+
+    private void finalizeInvoice(PaymentTransaction transaction, long amount, String operation) {
+        try {
+            MonoInvoiceFinalizeResponseDTO response = monobankClient.finalizeInvoice(
+                    monobankToken,
+                    new MonoInvoiceFinalizeRequestDTO(transaction.getExternalBankReference(), amount));
+            if (!"success".equalsIgnoreCase(response.status())) {
+                throw new MonobankOperationException("Monobank did not accept payment " + operation);
+            }
+        } catch (FeignException exception) {
+            throw new MonobankOperationException(
+                    "Monobank could not complete payment " + operation, exception);
+        }
     }
 
     private JsonNode readWebhookPayload(String webhookPayload) {

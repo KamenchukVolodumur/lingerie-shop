@@ -2,6 +2,7 @@ package com.lingerieshop.orderservice.clients;
 
 import com.lingerieshop.orderservice.dto.PaymentLinkResponseDTO;
 import com.lingerieshop.orderservice.dto.PaymentRequestDTO;
+import com.lingerieshop.orderservice.dto.PaymentCancellationResponseDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,5 +18,5 @@ public interface PaymentServiceClient {
     void capturePayment(@PathVariable("orderId") Long orderId);
 
     @PostMapping("/api/v1/payments/{orderId}/cancel")
-    void cancelPayment(@PathVariable("orderId") Long orderId);
+    PaymentCancellationResponseDTO cancelPayment(@PathVariable("orderId") Long orderId);
 }

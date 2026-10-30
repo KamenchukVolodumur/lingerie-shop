@@ -21,6 +21,13 @@ public class AdminOrderController {
         return orderService.getAllOrders(pageable);
     }
 
+    @GetMapping("/search")
+    public Page<OrderResponseDTO> searchOrdersByNumber(
+            @RequestParam String orderNumber,
+            Pageable pageable) {
+        return orderService.searchOrdersByNumber(orderNumber, pageable);
+    }
+
     @GetMapping("/{id}")
     public OrderResponseDTO getOrderById(@PathVariable Long id) {
         return orderService.getOrderById(id);

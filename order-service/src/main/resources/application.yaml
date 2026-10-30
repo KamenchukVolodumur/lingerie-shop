@@ -3,21 +3,23 @@ server:
 
 novaposhta:
   api:
-    key: a5bfc266a3c2ff22ace4a65363b9c4da
+    key: ${NOVAPOSHTA_API_KEY:}
 
 app:
   services:
-    cart-service-url: http://localhost:8082
-    product-service-url: http://localhost:8080
+    cart-service-url: ${CART_SERVICE_URL:http://localhost:8082}
+    product-service-url: ${PRODUCT_SERVICE_URL:http://localhost:8080}
     payment-service-url: ${PAYMENT_SERVICE_URL:http://localhost:8084}
 
 spring:
   application:
     name: order-service
+  profiles:
+    active: local
   datasource:
-    url: jdbc:postgresql://localhost:5433/lingerie_orders
-    username: postgres
-    password: 15042008Volody@K@m
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/lingerie_orders}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
   flyway:
     baseline-on-migrate: true

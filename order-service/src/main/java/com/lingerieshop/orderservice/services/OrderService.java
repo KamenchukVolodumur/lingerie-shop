@@ -15,6 +15,7 @@ import com.lingerieshop.orderservice.entities.OrderItem;
 import com.lingerieshop.orderservice.entities.enums.OrderStatus;
 import com.lingerieshop.orderservice.entities.enums.PaymentMethod;
 import com.lingerieshop.orderservice.entities.enums.PaymentStatus;
+import com.lingerieshop.orderservice.dto.PaymentCancellationResponseDTO;
 import com.lingerieshop.orderservice.repositories.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,7 +24,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -35,12 +40,33 @@ public class OrderService {
     private final ProductServiceClient productServiceClient;
     private final PaymentServiceClient paymentServiceClient;
     private final OrderRepository orderRepository;
+    private final OrderIdempotencyService orderIdempotencyService;
 
     @Transactional
-    public OrderResponseDTO createOrder(CreateOrderRequestDTO createOrderRequest) {
+    public OrderResponseDTO createOrder(CreateOrderRequestDTO createOrderRequest, String idempotencyKey) {
         // TODO: заглушка — коли з'явиться auth-service, брати userId з токена
         Long userId = createOrderRequest.userId() != null ? createOrderRequest.userId() : 1L;
+        OrderIdempotencyService.Reservation reservation = orderIdempotencyService.reserve(
+                userId,
+                idempotencyKey,
+                requestHash(createOrderRequest));
 
+        if (reservation.isCompleted()) {
+            return mapToDTO(findOrderById(reservation.orderId()), reservation.paymentUrl());
+        }
+
+        try {
+            return createOrder(createOrderRequest, userId, reservation.id());
+        } catch (RuntimeException exception) {
+            orderIdempotencyService.release(reservation.id());
+            throw exception;
+        }
+    }
+
+    private OrderResponseDTO createOrder(
+            CreateOrderRequestDTO createOrderRequest,
+            Long userId,
+            UUID reservationId) {
         CartResponseDTO cart = cartServiceClient.getCart(createOrderRequest.cartId());
         if (cart == null || cart.items() == null || cart.items().isEmpty()) {
             throw new IllegalStateException("Cart is empty: " + createOrderRequest.cartId());
@@ -94,7 +120,27 @@ public class OrderService {
 
         cartServiceClient.clearCart(createOrderRequest.cartId());
 
+        orderIdempotencyService.complete(reservationId, saved.getId(), paymentUrl);
         return mapToDTO(saved, paymentUrl);
+    }
+
+    private String requestHash(CreateOrderRequestDTO request) {
+        String requestContent = String.join("|",
+                String.valueOf(request.userId()),
+                request.cartId(),
+                request.paymentMethod().name(),
+                request.customerName(),
+                request.email(),
+                request.deliveryProvider(),
+                request.deliveryCity(),
+                request.deliveryBranch(),
+                request.shippingPhone());
+        try {
+            return HexFormat.of().formatHex(
+                    MessageDigest.getInstance("SHA-256").digest(requestContent.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
+        }
     }
 
     private String generateOrderNumber() {
@@ -114,6 +160,17 @@ public class OrderService {
     @Transactional(readOnly = true)
     public Page<OrderResponseDTO> getAllOrders(Pageable pageable) {
         return orderRepository.findAll(pageable)
+                .map(this::mapToDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderResponseDTO> searchOrdersByNumber(String orderNumber, Pageable pageable) {
+        String normalizedOrderNumber = orderNumber == null ? "" : orderNumber.trim();
+        if (normalizedOrderNumber.isEmpty()) {
+            return getAllOrders(pageable);
+        }
+
+        return orderRepository.findByOrderNumberContainingIgnoreCase(normalizedOrderNumber, pageable)
                 .map(this::mapToDTO);
     }
 
@@ -175,6 +232,18 @@ public class OrderService {
     }
 
     @Transactional
+    public void markPaymentCanceled(Long orderId) {
+        Order order = findOrderById(orderId);
+        if (order.getStatus() == OrderStatus.NEW) {
+            order.setStatus(OrderStatus.CANCELLED);
+            order.setPaymentStatus(PaymentStatus.CANCELED);
+        } else if (order.getStatus() == OrderStatus.CANCELLED
+                && order.getPaymentStatus() == PaymentStatus.RELEASE_PENDING) {
+            order.setPaymentStatus(PaymentStatus.CANCELED);
+        }
+    }
+
+    @Transactional
     public OrderResponseDTO markAsShipped(Long orderId) {         // CONFIRMED -> SHIPPED
         Order order = findOrderById(orderId);
         if (order.getStatus() != OrderStatus.CONFIRMED) {
@@ -227,8 +296,8 @@ public class OrderService {
         }
 
         if (order.getPaymentMethod() == PaymentMethod.CARD) {
-            paymentServiceClient.cancelPayment(orderId);
-            order.setPaymentStatus(PaymentStatus.CANCELED);
+            PaymentCancellationResponseDTO response = paymentServiceClient.cancelPayment(orderId);
+            order.setPaymentStatus(PaymentStatus.valueOf(response.paymentStatus()));
         }
 
         order.setStatus(OrderStatus.CANCELLED);

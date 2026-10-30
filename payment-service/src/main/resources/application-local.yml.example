@@ -1,0 +1,8 @@
+# Скопіюйте цей файл у "application-local.yml" та вкажіть власні секретні дані для локального запуску
+spring:
+  datasource:
+    password: your_postgres_password
+
+app:
+  monobank:
+    token: your_monobank_token

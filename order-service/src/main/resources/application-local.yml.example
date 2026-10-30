@@ -1,0 +1,8 @@
+# Скопіюйте цей файл у "application-local.yml" та вкажіть власні секретні дані для локального запуску
+novaposhta:
+  api:
+    key: your_novaposhta_api_key
+
+spring:
+  datasource:
+    password: your_postgres_password

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { adminOrderService } from '../../api/adminOrderService';
 import { Search, MoreVertical, CheckCircle, Truck, Package, XCircle, ChevronDown, ChevronUp, Undo } from 'lucide-react';
 import { formatUah } from '../../utils/currency';
@@ -8,22 +8,28 @@ function AdminOrders() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async (orderNumber = '') => {
+    const normalizedOrderNumber = orderNumber.trim();
     try {
       setLoading(true);
-      const data = await adminOrderService.getAllOrders(0, 50);
+      setError(null);
+      const data = normalizedOrderNumber
+        ? await adminOrderService.searchOrdersByNumber(normalizedOrderNumber, 0, 50)
+        : await adminOrderService.getAllOrders(0, 50);
       setOrders(data.content || []);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => fetchOrders(searchQuery), 300);
+    return () => clearTimeout(timeoutId);
+  }, [fetchOrders, searchQuery]);
 
   const handleStatusUpdate = async (id, action) => {
     try {
@@ -49,7 +55,7 @@ function AdminOrders() {
         default:
           break;
       }
-      fetchOrders(); // Refresh after action
+      fetchOrders(searchQuery); // Refresh after action
     } catch (err) {
       alert(`Помилка: ${err.response?.data?.message || err.message}`);
     }
@@ -79,6 +85,18 @@ function AdminOrders() {
     );
   };
 
+  const getPaymentStatusLabel = (status) => {
+    const labels = {
+      PAID: '✅ Оплачено',
+      PENDING: '⏳ Очікує',
+      RELEASE_PENDING: '⏳ Очікується розблокування коштів',
+      CANCELED: 'Скасовано',
+      FAILED: 'Неуспішно'
+    };
+
+    return labels[status] || status;
+  };
+
   if (loading) return <div className="p-8">Завантаження замовлень...</div>;
   if (error) return <div className="p-8 text-red-500">Помилка: {error}</div>;
 
@@ -90,6 +108,8 @@ function AdminOrders() {
           <input 
             type="text" 
             placeholder="Пошук (номер)"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
             className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-gray-900"
           />
           <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
@@ -138,7 +158,7 @@ function AdminOrders() {
                   <td className="p-4">
                     {getStatusBadge(order.status)}
                     <div className="mt-2 text-xs text-gray-400">
-                      Оплата: {order.paymentStatus === 'PAID' ? '✅ Оплачено' : (order.paymentStatus === 'PENDING' ? '⏳ Очікує' : order.paymentStatus)}
+                      Оплата: {getPaymentStatusLabel(order.paymentStatus)}
                     </div>
                   </td>
                   <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>

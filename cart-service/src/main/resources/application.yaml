@@ -7,8 +7,8 @@ spring:
 
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
       timeout: 2000
 
 feign:
@@ -20,12 +20,12 @@ feign:
 
 app:
   services:
-    product-service-url: http://localhost:8080
+    product-service-url: ${PRODUCT_SERVICE_URL:http://localhost:8080}
 
 # F1-01: Redisson configuration for distributed locking
 redisson:
   single-server-config:
-    address: redis://localhost:6379
+    address: redis://${REDIS_HOST:localhost}:${REDIS_PORT:6379}
 
 # F2-06: Resilience4j Circuit Breaker for ProductServiceClient
 resilience4j:
